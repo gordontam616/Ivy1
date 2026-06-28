@@ -69,6 +69,28 @@ function saveCurrentDest(){
   jpMsg('已儲存「'+name+'」');
 }
 
+function buildTransitOptions(){
+  const seg=$("#jpWhen");
+  let mode="now";
+  if(seg){ const a=seg.querySelector(".active"); if(a) mode=a.dataset.when||"now"; }
+  if(mode==="now") return { departureTime:new Date() };
+  const ti=$("#jpTime"); const tv=ti?(ti.value||""):"";
+  if(!tv) return { departureTime:new Date() };
+  const parts=tv.split(":"); const h=parseInt(parts[0],10), m=parseInt(parts[1],10);
+  const d=new Date(); d.setHours(h, m, 0, 0);
+  if(d.getTime() < Date.now()-60000) d.setDate(d.getDate()+1);
+  if(mode==="arrive") return { arrivalTime:d };
+  return { departureTime:d };
+}
+function whenLabel(){
+  const seg=$("#jpWhen"); if(!seg) return "";
+  const a=seg.querySelector(".active"); const mode=a?(a.dataset.when||"now"):"now";
+  const ti=$("#jpTime"); const tv=ti?(ti.value||""):"";
+  if(mode==="now") return "現在出發";
+  if(!tv) return "現在出發";
+  return mode==="arrive" ? (tv+" 前到達") : (tv+" 出發");
+}
+
 function doSearch(){
   const dest=($("#jpDest").value||"").trim();
   if(!dest){ jpMsg("請輸入目的地"); return; }
@@ -95,7 +117,7 @@ async function runRoute(dest){
   ds.route({
     origin:origin, destination:dest,
     travelMode:google.maps.TravelMode.TRANSIT,
-    transitOptions:{ departureTime:new Date() },
+    transitOptions: buildTransitOptions(),
     provideRouteAlternatives:true, region:"HK"
   }, function(res,status){
     if(status!=="OK" || !res || !res.routes || !res.routes.length){
@@ -155,6 +177,7 @@ function updateCondLine(){
 function renderResults(){
   const box=$("#jpResults"); if(!box) return;
   let html='<div class="jp-sheet-h"><b>路線建議</b><span class="jp-x" data-close="#jpResults">✕</span></div>';
+  const wl=whenLabel(); if(wl) html+='<div class="jp-when-tag">🕒 '+wl+'</div>';
   html+='<div id="jpCond"></div>';
   JP_ROUTES.forEach(function(r,i){
     const leg=r.legs[0];
@@ -222,5 +245,21 @@ document.addEventListener("click",function(e){
   $("#jpDest").addEventListener("keydown",function(e){ if(e.key==="Enter"){ e.preventDefault(); doSearch(); } });
   $("#jpGo").addEventListener("click", doSearch);
   $("#jpStar").addEventListener("click", saveCurrentDest);
+  const whenSeg=$("#jpWhen");
+  if(whenSeg){
+    whenSeg.querySelectorAll(".jp-wbtn").forEach(function(b){
+      b.addEventListener("click",function(){
+        whenSeg.querySelectorAll(".jp-wbtn").forEach(function(x){ x.classList.remove("active"); });
+        b.classList.add("active");
+        const w=b.dataset.when; const ti=$("#jpTime");
+        if(!ti) return;
+        if(w==="now"){ ti.style.display="none"; }
+        else {
+          ti.style.display="";
+          if(!ti.value){ const n=new Date(); if(w==="arrive") n.setMinutes(n.getMinutes()+30); ti.value=String(n.getHours()).padStart(2,"0")+":"+String(n.getMinutes()).padStart(2,"0"); }
+        }
+      });
+    });
+  }
   renderSaved();
 })();
