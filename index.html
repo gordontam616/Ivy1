@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<title>天水圍到站 & 天氣</title>
+<title>建立準時好習慣</title>
 <style>
   :root{
     --bg:#0b0d10; --bg2:#14181d; --card:#1b2026; --card2:#232a32;
@@ -27,7 +27,7 @@
   .page.hidden{display:none;}
   .phead{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px;}
   .phead .eyebrow{font-size:11px; letter-spacing:.22em; color:var(--dim); text-transform:uppercase;}
-  .phead h1{font-size:26px; font-weight:800; margin:2px 0 0; letter-spacing:-.5px;}
+  .phead h1{font-size:24px; font-weight:800; margin:2px 0 0; letter-spacing:-.5px;}
   .phead .sub{font-size:12px; color:var(--sub);}
   .upd{font-size:11px; color:var(--dim); text-align:right; white-space:nowrap;}
   .refresh{margin-top:6px; display:inline-flex; gap:6px; align-items:center; background:var(--card2);
@@ -51,13 +51,16 @@
   .stop-h .name{font-size:14px; font-weight:700;}
   .stop-h .tag{font-size:10px; color:var(--dim); background:rgba(255,255,255,.05); border:1px solid var(--line); padding:2px 7px; border-radius:10px;}
   .stop-h .pin{margin-left:auto; font-size:11px; color:var(--dim);}
+  .stop-h .editbtn{margin-left:auto; font-size:11px; color:var(--accent); background:rgba(62,166,255,.12); border:1px solid rgba(62,166,255,.3); padding:4px 12px; border-radius:11px; cursor:pointer; font-weight:700;}
   .row{display:flex; align-items:center; gap:12px; padding:12px 14px; border-bottom:1px solid var(--line); cursor:pointer; transition:background .15s;}
   .row:last-child{border-bottom:none;}
   .row:active{background:rgba(255,255,255,.04);}
   .route{min-width:60px; font-size:22px; font-weight:800; letter-spacing:-.5px;}
+  .route.kmbno{color:#ff5a5f;}
+  .route.lwbno{color:#ff9f45;}
+  .route.ctbno{color:#ffd400;}
+  .route.mtrno{color:#ffffff;}
   .route.lrtno{color:var(--amber);}
-  .route.ctbno{color:var(--green);}
-  .route.mtrno{color:var(--red);}
   .dest{flex:1; min-width:0;}
   .dest .d1{font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .dest .d2{font-size:11px; color:var(--dim); margin-top:2px;}
@@ -78,6 +81,22 @@
   .amber{color:var(--amber);}
   .empty{padding:16px 14px; font-size:13px; color:var(--dim); text-align:center;}
   .err{padding:14px; font-size:12.5px; color:var(--red); background:rgba(255,90,95,.08); border:1px solid rgba(255,90,95,.25); border-radius:12px; margin-bottom:12px;}
+  .editbar{padding:12px 14px; background:rgba(0,0,0,.22); border-top:1px solid var(--line);}
+  .editbar .chips{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;}
+  .editbar .chip{display:inline-flex; align-items:center; gap:7px; font-size:14px; font-weight:800; padding:5px 11px; border-radius:11px; border:1px solid var(--line); background:var(--card2);}
+  .editbar .chip.cr{color:#ff5a5f;} .editbar .chip.cy{color:#ffd400;}
+  .editbar .chip b{cursor:pointer; color:var(--dim); font-weight:700; font-size:13px;}
+  .editbar .chip b:active{color:var(--red);}
+  .editbar .chipnote{font-size:12px; color:var(--dim);}
+  .editbar .addrow{display:flex; gap:8px;}
+  .editbar .rin{flex:1; min-width:0; background:var(--bg2); border:1px solid var(--line); border-radius:10px; color:var(--txt); padding:9px 12px; font-size:14px; font-family:inherit;}
+  .editbar .addbtn{background:var(--accent); color:#04121f; border:0; border-radius:10px; padding:0 16px; font-size:14px; font-weight:800; cursor:pointer; font-family:inherit;}
+  .editbar .editmsg{font-size:12px; color:var(--sub); min-height:15px; margin:8px 2px 0;}
+  .editbar .delstop{margin-top:10px; width:100%; background:rgba(255,90,95,.10); color:var(--red); border:1px solid rgba(255,90,95,.3); border-radius:10px; padding:10px; font-size:13px; font-weight:800; cursor:pointer; font-family:inherit;}
+  .addcard{border:1px dashed var(--line); border-radius:16px; cursor:pointer; margin-bottom:12px;}
+  .addcard .addinner{display:flex; align-items:center; justify-content:center; gap:8px; padding:16px; color:var(--accent); font-size:15px; font-weight:800;}
+  .addcard .plus{font-size:22px; line-height:1;}
+  .addcard:active{background:rgba(255,255,255,.03);}
   .wx-hero{text-align:center; padding:20px 10px 6px;}
   .wx-loc{font-size:20px; font-weight:700; display:flex; gap:6px; justify-content:center; align-items:center;}
   .wx-loc .arrow{font-size:13px; color:var(--sub);}
@@ -148,7 +167,7 @@
     <div class="phead">
       <div>
         <div class="eyebrow">到站顯示屏</div>
-        <h1>天水圍 Live</h1>
+        <h1>建立準時好習慣</h1>
         <div class="sub">Bus &amp; Light Rail ETA · 天逸 / 天恒 / 天澤</div>
       </div>
       <div>
@@ -267,7 +286,8 @@ const BUS_STOPS = [
     mtrb:[{route:"K73",stop:"K73-U020"},{route:"K76",stop:"K76-U020"}] },
   { label:"天恒邨總站", keywords:["天恒邨總站","天恆邨總站","天恒","天恆"], mustEnd:true, pin:"九巴 · 港鐵巴士",
     kmb:["265M","276A","265B"],
-    mtrb:[{route:"K73",stop:"K73-U010"},{route:"K76",stop:"K76-U010"}] },
+    kmbDest:{ "265B":"旺角", "265M":"麗瑠", "276A":"上水" },
+    mtrb:[{route:"K73",stop:"K73-U010",dest:"往 元朗"},{route:"K76",stop:"K76-U010",dest:"往 天水圍站"}] },
   { label:"天澤邨", keywords:["天澤"], pin:"九巴 · 城巴",
     kmb:["269M"],
     ctb:["967","967X"] },
@@ -331,7 +351,7 @@ async function loadStopList(){
   return STOP_CACHE;
 }
 function findStops(cfg){
-  const kws = cfg.keywords || [cfg.keyword];
+  const kws = cfg.keywords || [cfg.label];
   let list = STOP_CACHE.filter(s=> s.name_tc && kws.some(k=>s.name_tc.includes(k)));
   if(cfg.mustEnd){ const t = list.filter(s=> /總站|總$/.test(s.name_tc)); if(t.length) return t; }
   return list;
@@ -339,6 +359,7 @@ function findStops(cfg){
 
 async function kmbEntries(cfg){
   const out=[];
+  if(!STOP_CACHE) return out;
   const stops=findStops(cfg);
   if(!stops.length) return out;
   let etas=[];
@@ -350,9 +371,10 @@ async function kmbEntries(cfg){
   for(const k of Object.keys(groups)){
     const arr=groups[k].sort((a,b)=>(a.eta_seq||0)-(b.eta_seq||0));
     const f=arr[0];
-    const op = ["A37","E37","NA37"].includes((f.route||"").toUpperCase())?"龍運":"九巴";
-    out.push({ route:f.route, routeCls:"", dest:f.dest_tc,
-      d2html: f.rmk_tc?`<span class=amber>${f.rmk_tc}</span>`:op,
+    if(cfg.kmbDest && cfg.kmbDest[(f.route||"").toUpperCase()] && !(f.dest_tc||"").includes(cfg.kmbDest[(f.route||"").toUpperCase()])) continue;
+    const isLwb=["A37","E37","NA37"].includes((f.route||"").toUpperCase());
+    out.push({ route:f.route, routeCls:isLwb?"lwbno":"kmbno", dest:f.dest_tc,
+      d2html: f.rmk_tc?`<span class=amber>${f.rmk_tc}</span>`:(isLwb?"龍運":"九巴"),
       items: uniqByMin(arr.map(e=>({mins:minsFromNow(e.eta), clock:clockOf(e.eta), rmk:e.rmk_tc}))) });
   }
   return out;
@@ -387,10 +409,10 @@ async function ctbEntries(route, kws){
   });
 }
 
-async function mtrbEntry(route, stopId){
-  let j; try{ j=await fetch(MTRB,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({language:"zh",routeName:route})}).then(r=>{if(!r.ok)throw 0;return r.json();}); }catch(e){ return null; }
+async function mtrbEntry(route, stopId, destLabel){
+  const base={ route, routeCls:"mtrno", dest: destLabel||"西鐵綫接駁巴士", d2html:"港鐵巴士", items:[] };
+  let j; try{ j=await fetch(MTRB,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({language:"zh",routeName:route})}).then(r=>{if(!r.ok)throw 0;return r.json();}); }catch(e){ return base; }
   const bs=(j.busStop||[]).find(b=>b.busStopId===stopId);
-  const base={ route, routeCls:"mtrno", dest:"西鐵綫接駁巴士", d2html:"港鐵巴士", items:[] };
   if(!bs||!bs.bus) return base;
   const items=(bs.bus||[]).map(b=>{
     let raw=(b.arrivalTimeInSecond && String(b.arrivalTimeInSecond)!=="108000")? b.arrivalTimeInSecond : b.departureTimeInSecond;
@@ -400,35 +422,136 @@ async function mtrbEntry(route, stopId){
   base.items=items; return base;
 }
 
+async function buildEntries(cfg){
+  let entries=[];
+  const tasks=[];
+  if(cfg.kmb && cfg.kmb.length) tasks.push(kmbEntries(cfg));
+  for(const route of (cfg.ctb||[])) tasks.push(ctbEntries(route, cfg.keywords||[cfg.label]));
+  for(const mb of (cfg.mtrb||[])) tasks.push(mtrbEntry(mb.route, mb.stop, mb.dest).then(x=>x?[x]:[]));
+  const res=await Promise.all(tasks);
+  res.forEach(r=>{ entries=entries.concat(r); });
+  entries.sort((a,b)=> String(a.route).localeCompare(String(b.route),"en",{numeric:true}));
+  return entries;
+}
+
+async function buildDefaultCard(cfg, wrap){
+  const card=el("div","stop");
+  const head=el("div","stop-h");
+  head.appendChild(el("span","name",cfg.label));
+  const allRoutes=[...(cfg.kmb||[]),...((cfg.mtrb||[]).map(x=>x.route)),...(cfg.ctb||[])];
+  head.appendChild(el("span","tag","只顯示 "+allRoutes.join("/")));
+  head.appendChild(el("span","pin",cfg.pin||"九巴 KMB"));
+  card.appendChild(head);
+  const body=el("div"); card.appendChild(body); wrap.appendChild(card);
+  let entries=[]; try{ entries=await buildEntries(cfg); }catch(e){}
+  if(!entries.length){ body.appendChild(el("div","empty","暫時無班次資料")); return 0; }
+  entries.forEach(en=> renderEtaRow(body, en.route, en.routeCls, en.dest, en.d2html, en.items));
+  return entries.length;
+}
+
+/* ===== 自訂巴士站 ===== */
+let editingStopId=null;
+function getUserStops(){ try{ return JSON.parse(localStorage.getItem("userStops")||"[]"); }catch(e){ return []; } }
+function saveUserStops(a){ try{ localStorage.setItem("userStops", JSON.stringify(a)); }catch(e){} }
+function persistUserStop(stop){
+  const arr=getUserStops(); const i=arr.findIndex(s=>s.id===stop.id);
+  if(i>=0) arr[i]=stop; else arr.push(stop); saveUserStops(arr);
+}
+function deleteStop(stop){
+  saveUserStops(getUserStops().filter(s=> s.id!==stop.id));
+  if(editingStopId===stop.id) editingStopId=null;
+  renderBus();
+}
+function removeRoute(stop, r){
+  stop.routes = stop.routes.filter(x=> !(x.route===r.route && x.co===r.co));
+  persistUserStop(stop);
+  if(stop.routes.length===0){
+    if(confirm("「"+stop.label+"」已沒有任何路線，是否刪除這個巴士站？")){ deleteStop(stop); return; }
+  }
+  renderBus();
+}
+async function detectCo(route){
+  for(const b of ["outbound","inbound"]){
+    try{ const j=await fetchJSON(`${KMB}/route/${route}/${b}/1`); if(j && j.data && j.data.route) return "kmb"; }catch(e){}
+  }
+  try{ const j=await fetchJSON(`${CTB}/route/CTB/${route}`); if(j && j.data && j.data.route) return "ctb"; }catch(e){}
+  return null;
+}
+function customCfg(stop){
+  return {
+    label: stop.label, keywords:[stop.label],
+    kmb: stop.routes.filter(r=>r.co==="kmb").map(r=>r.route),
+    ctb: stop.routes.filter(r=>r.co==="ctb").map(r=>r.route),
+    mtrb: []
+  };
+}
+function buildEditPanel(stop){
+  const p=el("div","editbar");
+  const chips=el("div","chips");
+  if(!stop.routes.length) chips.appendChild(el("span","chipnote","尚未加入路線"));
+  stop.routes.forEach(r=>{
+    const c=el("span","chip "+(r.co==="ctb"?"cy":"cr"), r.route+' <b>✕</b>');
+    c.querySelector("b").addEventListener("click",()=> removeRoute(stop,r));
+    chips.appendChild(c);
+  });
+  p.appendChild(chips);
+  const addrow=el("div","addrow");
+  const inp=el("input","rin"); inp.type="text"; inp.placeholder="搜尋路線號，例如 265M / 967";
+  const ab=el("button","addbtn","加入");
+  addrow.appendChild(inp); addrow.appendChild(ab); p.appendChild(addrow);
+  const msg=el("div","editmsg"); p.appendChild(msg);
+  const del=el("button","delstop","🗑 刪除巴士站");
+  del.addEventListener("click",()=>{ if(confirm("確定刪除「"+stop.label+"」？")) deleteStop(stop); });
+  p.appendChild(del);
+  ab.addEventListener("click", async()=>{
+    const v=(inp.value||"").trim().toUpperCase();
+    if(!v) return;
+    if(stop.routes.some(r=>r.route.toUpperCase()===v)){ msg.textContent="路線已在列表內"; return; }
+    msg.textContent="搜尋中…"; ab.disabled=true;
+    const co=await detectCo(v); ab.disabled=false;
+    if(!co){ msg.textContent="找不到路線 "+v+"（自訂站僅支援九巴 / 城巴）"; return; }
+    stop.routes.push({co, route:v}); persistUserStop(stop); renderBus();
+  });
+  inp.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); ab.click(); } });
+  return p;
+}
+async function buildUserCard(stop, wrap){
+  const card=el("div","stop");
+  const head=el("div","stop-h");
+  head.appendChild(el("span","name",stop.label));
+  head.appendChild(el("span","tag","自訂"));
+  const editBtn=el("span","editbtn", editingStopId===stop.id?"完成":"編輯");
+  head.appendChild(editBtn);
+  card.appendChild(head);
+  const body=el("div"); card.appendChild(body); wrap.appendChild(card);
+  editBtn.addEventListener("click",()=>{ editingStopId = (editingStopId===stop.id)? null : stop.id; renderBus(); });
+  if(editingStopId===stop.id) card.appendChild(buildEditPanel(stop));
+  if(!stop.routes.length){ body.appendChild(el("div","empty","尚未加入路線 · 按右上「編輯」加入")); return; }
+  let entries=[]; try{ entries=await buildEntries(customCfg(stop)); }catch(e){}
+  if(!entries.length){ body.appendChild(el("div","empty","暫時無班次資料（請確認巴士站名稱）")); }
+  else entries.forEach(en=> renderEtaRow(body, en.route, en.routeCls, en.dest, en.d2html, en.items));
+}
+function buildAddCard(wrap){
+  const card=el("div","addcard");
+  card.innerHTML='<div class="addinner"><span class="plus">＋</span><span>新增巴士站</span></div>';
+  card.addEventListener("click",()=>{
+    const name=(prompt("輸入巴士站名稱（例如：天悦邨 / 天秀路）")||"").trim();
+    if(!name) return;
+    const stop={ id:"u"+Date.now(), label:name, routes:[] };
+    const arr=getUserStops(); arr.push(stop); saveUserStops(arr);
+    editingStopId=stop.id; renderBus();
+  });
+  wrap.appendChild(card);
+}
+
 async function renderBus(){
   const wrap = $("#busStops");
   try{ await loadStopList(); }
   catch(e){ $("#busErr").innerHTML = '<div class="err">巴士站資料載入失敗，請檢查網絡後重試。</div>'; }
   $("#busErr").innerHTML=""; wrap.innerHTML=""; let total=0;
-  for(const cfg of BUS_STOPS){
-    const card=el("div","stop");
-    const head=el("div","stop-h");
-    head.appendChild(el("span","name",cfg.label));
-    const allRoutes=[...(cfg.kmb||[]),...((cfg.mtrb||[]).map(x=>x.route)),...(cfg.ctb||[])];
-    head.appendChild(el("span","tag","只顯示 "+allRoutes.join("/")));
-    head.appendChild(el("span","pin",cfg.pin||"九巴 KMB"));
-    card.appendChild(head);
-    const body=el("div"); card.appendChild(body); wrap.appendChild(card);
-
-    let entries=[];
-    try{
-      const tasks=[];
-      if(cfg.kmb && cfg.kmb.length && STOP_CACHE) tasks.push(kmbEntries(cfg));
-      for(const route of (cfg.ctb||[])) tasks.push(ctbEntries(route, cfg.keywords||[cfg.keyword]));
-      for(const mb of (cfg.mtrb||[])) tasks.push(mtrbEntry(mb.route, mb.stop).then(x=>x?[x]:[]));
-      const res=await Promise.all(tasks);
-      res.forEach(r=>{ entries=entries.concat(r); });
-    }catch(e){}
-
-    if(!entries.length){ body.appendChild(el("div","empty","暫時無班次資料")); continue; }
-    entries.sort((a,b)=> String(a.route).localeCompare(String(b.route),"en",{numeric:true}));
-    for(const en of entries){ total++; renderEtaRow(body, en.route, en.routeCls, en.dest, en.d2html, en.items); }
-  }
+  for(const cfg of BUS_STOPS){ total += await buildDefaultCard(cfg, wrap); }
+  for(const stop of getUserStops()){ await buildUserCard(stop, wrap); }
+  buildAddCard(wrap);
   $("#busMeta").textContent = total+" 條路線";
 }
 
@@ -447,11 +570,9 @@ async function renderLRT(){
     head.appendChild(el("span","pin","輕鐵 LR"));
     card.appendChild(head);
     const body=el("div"); card.appendChild(body); wrap.appendChild(card);
-
     let data=null;
     try{ data = await fetchJSON(`${LRT}?station_id=${st.id}`); }catch(e){}
     if(!data || data.status===0 || !data.platform_list){ body.appendChild(el("div","empty","暫時無班次資料（深夜時段可能停駛）")); continue; }
-
     const groups={};
     for(const p of data.platform_list){
       for(const r of (p.route_list||[])){
@@ -463,11 +584,9 @@ async function renderLRT(){
     let keys=Object.keys(groups);
     if(!keys.length){ body.appendChild(el("div","empty","暫時無班次資料")); continue; }
     keys.sort((a,b)=> a.split("|")[0].localeCompare(b.split("|")[0],"en",{numeric:true}));
-
     for(const k of keys){
       cnt++;
-      const arr=groups[k];
-      const f=arr[0];
+      const arr=groups[k]; const f=arr[0];
       const items=arr.slice(0,2).map(r=>{
         const mm=lrtMins(r.time_ch);
         return { mins: mm==null?null:mm, text: r.time_ch||"—", note:"月台 "+r.plat+" · "+(r.train_length||"?")+" 卡", rmk:"" };
@@ -589,113 +708,4 @@ async function loadWeather(lat,lon){
   }else if(maxProb>=50){
     umbEmoji="☂️"; umbBig="建議帶遮"; umbSmall=`未來降雨機會高達 ${maxProb}%。`;
   }else if(maxProb>=30){
-    umbEmoji="☂️"; umbBig="最好帶把遮"; umbSmall=`未來降雨機會約 ${maxProb}%，以防萬一。`;
-  }
-  $("#umbEmoji").textContent=umbEmoji; $("#umbBig").textContent=umbBig;
-  if(rainAt){
-    const rt=rainAt.toLocaleTimeString("zh-HK",{hour:"2-digit",minute:"2-digit",hour12:false});
-    umbSmall += ` 預計約 ${rt} 開始有雨。`;
-  }else if(umbBig==="應該唔使帶遮"){
-    umbSmall="未來 14 個鐘預料唔會落雨。";
-  }
-  $("#umbSmall").textContent=umbSmall;
-  if(om && om.daily){
-    const D=om.daily, dbox=$("#wxDaily"); dbox.innerHTML="";
-    const days=["日","一","二","三","四","五","六"];
-    let gMin=999,gMax=-999;
-    D.temperature_2m_min.forEach(v=>gMin=Math.min(gMin,v));
-    D.temperature_2m_max.forEach(v=>gMax=Math.max(gMax,v));
-    for(let i=0;i<D.time.length;i++){
-      const d=new Date(D.time[i]);
-      const w=wmo(D.weather_code[i]);
-      const lo=D.temperature_2m_min[i], hi=D.temperature_2m_max[i];
-      const prob=D.precipitation_probability_max? D.precipitation_probability_max[i]:0;
-      const left=((lo-gMin)/(gMax-gMin||1))*100;
-      const width=((hi-lo)/(gMax-gMin||1))*100;
-      const row=el("div","day");
-      row.innerHTML=`<div class="dn">${i===0?"今日":"星期"+days[d.getDay()]}</div>`+
-        `<div class="di">${w[1]}</div>`+
-        `<div class="dp">${prob>=20?prob+"%":""}</div>`+
-        `<div class="lo">${Math.round(lo)}°</div>`+
-        `<div class="bar"><i style="left:${left}%;width:${Math.max(width,8)}%"></i></div>`+
-        `<div class="hi">${Math.round(hi)}°</div>`;
-      dbox.appendChild(row);
-    }
-  }
-  $("#wxUpd").textContent="更新於 "+nowStr();
-}
-
-let COORDS=null;
-function getLocation(){
-  return new Promise(res=>{
-    if(!navigator.geolocation){ res(null); return; }
-    navigator.geolocation.getCurrentPosition(
-      p=> res({lat:p.coords.latitude, lon:p.coords.longitude}),
-      ()=> res(null),
-      {enableHighAccuracy:true, timeout:8000, maximumAge:60000}
-    );
-  });
-}
-async function refreshWx(){
-  const btn=$("#wxRefresh"); btn.classList.add("spin");
-  if(!COORDS){ const loc=await getLocation(); COORDS = loc || {lat:22.4488, lon:114.0040, fallback:true}; }
-  try{
-    await loadWeather(COORDS.lat, COORDS.lon);
-    if(COORDS.fallback){ $("#wxLoc").textContent += "（預設天水圍）"; }
-  }catch(e){
-    $("#wxErr").innerHTML='<div class="err">天氣資料載入失敗，請檢查網絡 / 位置權限後重試。</div>';
-  }
-  setTimeout(()=>btn.classList.remove("spin"),500);
-}
-
-let trafficLoaded=false, tZoom=14, tLat=22.4488, tLon=114.0040;
-function wazeSrc(){ return _H+"embed.waze.com/iframe?zoom="+tZoom+"&lat="+tLat+"&lon="+tLon+"&pin=1"; }
-function renderTraffic(){
-  const f=$("#wazeFrame"); if(f) f.src=wazeSrc();
-  const ext=$("#tOpenExt"); if(ext) ext.href=_H+"www.waze.com/ul?ll="+tLat+"%2C"+tLon+"&z="+tZoom;
-  $("#tUpd").textContent="更新於 "+nowStr();
-}
-async function loadTraffic(){
-  if(!COORDS){ const loc=await getLocation(); COORDS = loc || {lat:22.4488, lon:114.0040, fallback:true}; }
-  tLat=COORDS.lat; tLon=COORDS.lon;
-  renderTraffic();
-}
-{
-  const zi=$("#tZin"), zo=$("#tZout"), rc=$("#tRecenter");
-  if(zi) zi.addEventListener("click",()=>{ tZoom=Math.min(tZoom+1,17); renderTraffic(); });
-  if(zo) zo.addEventListener("click",()=>{ tZoom=Math.max(tZoom-1,9); renderTraffic(); });
-  if(rc) rc.addEventListener("click", async()=>{ COORDS=null; tZoom=14; await loadTraffic(); });
-}
-
-let wxLoaded=false;
-document.querySelectorAll(".tab").forEach(t=>{
-  t.addEventListener("click",()=>{
-    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
-    t.classList.add("active");
-    const tab=t.dataset.tab;
-    $("#pageBus").classList.toggle("hidden", tab!=="bus");
-    $("#pageTraffic").classList.toggle("hidden", tab!=="traffic");
-    $("#pageWx").classList.toggle("hidden", tab!=="wx");
-    if(tab==="wx" && !wxLoaded){ wxLoaded=true; refreshWx(); }
-    if(tab==="traffic" && !trafficLoaded){ trafficLoaded=true; loadTraffic(); }
-  });
-});
-$("#busRefresh").addEventListener("click", refreshBus);
-$("#wxRefresh").addEventListener("click", ()=>{ COORDS=null; refreshWx(); });
-document.querySelectorAll("#modeSeg .seg-btn").forEach(b=>{
-  b.addEventListener("click",()=>{
-    document.querySelectorAll("#modeSeg .seg-btn").forEach(x=>x.classList.remove("active"));
-    b.classList.add("active");
-    const mode=b.dataset.mode;
-    $("#grpBus").classList.toggle("hidden", mode!=="bus");
-    $("#grpLrt").classList.toggle("hidden", mode!=="lrt");
-  });
-});
-
-refreshBus();
-setInterval(()=>{ if(!$("#pageBus").classList.contains("hidden")) refreshBus(); }, 30000);
-setInterval(()=>{ if(!$("#pageWx").classList.contains("hidden")) refreshWx(); }, 600000);
-document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ if(!$("#pageBus").classList.contains("hidden")) refreshBus(); else if(!$("#pageWx").classList.contains("hidden")) refreshWx(); }});
-</script>
-</body>
-</html>
+    umbEmoji="☂️"; umbBig="最好帶把遮"; umbSmall=`未來降雨
