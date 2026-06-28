@@ -190,20 +190,80 @@ function removeRoute(stop, r){
   }
   renderBus();
 }
-async function detectCo(route){
-  for(const b of ["outbound","inbound"]){
-    try{ const j=await fetchJSON(`${KMB}/route/${route}/${b}/1`); if(j && j.data && j.data.route) return "kmb"; }catch(e){}
-  }
-  try{ const j=await fetchJSON(`${CTB}/route/CTB/${route}`); if(j && j.data && j.data.route) return "ctb"; }catch(e){}
-  return null;
+function stopNameById(id){ if(!STOP_CACHE) return ""; const s=STOP_CACHE.find(x=>x.stop===id); return s? s.name_tc : ""; }
+function normName(s){ return (s||"").replace(/巴士總站|總站/g,"").replace(/總$/,"").trim(); }
+function matchStops(list, label){
+  const L=normName(label); if(!L) return [];
+  return list.filter(s=>{ const N=normName(s.name); return N && (N.includes(L)||L.includes(N)); });
 }
-function customCfg(stop){
-  return {
-    label: stop.label, keywords:[stop.label],
-    kmb: stop.routes.filter(r=>r.co==="kmb").map(r=>r.route),
-    ctb: stop.routes.filter(r=>r.co==="ctb").map(r=>r.route),
-    mtrb: []
-  };
+async function kmbRouteStops(route){
+  try{ await loadStopList(); }catch(e){}
+  let all=[];
+  for(const b of ["outbound","inbound"]){
+    try{ const j=await fetchJSON(`${KMB}/route-stop/${route}/${b}/1`); (j.data||[]).forEach(x=> all.push({id:x.stop, name:stopNameById(x.stop), bound:b})); }catch(e){}
+  }
+  return all;
+}
+async function ctbRouteStops(route){
+  let all=[];
+  for(const d of ["inbound","outbound"]){
+    try{ const j=await fetchJSON(`${CTB}/route-stop/CTB/${route}/${d}`); for(const x of (j.data||[])){ const nm=await ctbStopName(x.stop); all.push({id:x.stop, name:nm, bound:d}); } }catch(e){}
+  }
+  return all;
+}
+function showStopPicker(stop, co, route, list, msg, panel){
+  const old=panel.querySelector(".pickerrow"); if(old) old.remove();
+  msg.textContent="「"+route+"」找不到匹配車站，請選擇：";
+  const sel=document.createElement("select"); sel.className="rin";
+  const seen=new Set();
+  list.forEach(s=>{ if(!s.id||seen.has(s.id))return; seen.add(s.id);
+    const o=document.createElement("option"); o.value=s.id;
+    const dir=s.bound? (/out/i.test(s.bound)?" · 去程":" · 回程"):"";
+    o.textContent=(s.name||s.id)+dir; sel.appendChild(o); });
+  const ok=el("button","addbtn","確認");
+  const row=el("div","addrow pickerrow"); row.appendChild(sel); row.appendChild(ok);
+  panel.insertBefore(row, msg);
+  ok.addEventListener("click",()=>{ const id=sel.value; const nm=(list.find(x=>x.id===id)||{}).name||""; stop.routes.push({co, route, stops:[id], names:[nm]}); persistUserStop(stop); renderBus(); });
+}
+async function customEntries(stop){
+  try{ await loadStopList(); }catch(e){}
+  let entries=[];
+  for(const r of (stop.routes||[])){
+    let ids = r.stops || [];
+    if(!ids.length && r.co==="kmb" && STOP_CACHE){ ids = findStops({keywords:[stop.label]}).map(s=>s.stop); }
+    if(r.co==="kmb"){
+      let etas=[];
+      try{ const res=await Promise.all(ids.map(id=> fetchJSON(`${KMB}/stop-eta/${id}`).then(j=>j.data).catch(()=>[]))); etas=res.flat(); }catch(e){}
+      etas=etas.filter(e=> (e.route||"").toUpperCase()===r.route.toUpperCase() && e.eta);
+      const groups={};
+      for(const e of etas){ const k=`${e.dir}|${e.dest_tc}`; (groups[k]=groups[k]||[]).push(e); }
+      const ks=Object.keys(groups);
+      const isLwb=["A37","E37","NA37"].includes(r.route.toUpperCase());
+      if(!ks.length){ entries.push({ route:r.route, routeCls:isLwb?"lwbno":"kmbno", dest:(r.names&&r.names[0])||"—", d2html:"暫無班次", items:[] }); }
+      for(const k of ks){
+        const arr=groups[k].sort((a,b)=>(a.eta_seq||0)-(b.eta_seq||0)); const f=arr[0];
+        entries.push({ route:f.route, routeCls:isLwb?"lwbno":"kmbno", dest:f.dest_tc,
+          d2html: f.rmk_tc?`<span class=amber>${f.rmk_tc}</span>`:(isLwb?"龍運":"九巴"),
+          items: uniqByMin(arr.map(e=>({mins:minsFromNow(e.eta),clock:clockOf(e.eta),rmk:e.rmk_tc}))) });
+      }
+    }else if(r.co==="ctb"){
+      let etas=[];
+      try{ const res=await Promise.all(ids.map(id=> fetchJSON(`${CTB}/eta/CTB/${id}/${r.route}`).then(j=>j.data).catch(()=>[]))); etas=res.flat(); }catch(e){}
+      etas=(etas||[]).filter(e=>e.eta);
+      const groups={};
+      for(const e of etas){ const k=`${e.dir}|${e.dest_tc}`; (groups[k]=groups[k]||[]).push(e); }
+      const ks=Object.keys(groups);
+      if(!ks.length){ entries.push({ route:r.route, routeCls:"ctbno", dest:(r.names&&r.names[0])||"—", d2html:"暫無班次", items:[] }); }
+      for(const k of ks){
+        const arr=groups[k].sort((a,b)=>(a.eta_seq||0)-(b.eta_seq||0)); const f=arr[0];
+        entries.push({ route:f.route, routeCls:"ctbno", dest:f.dest_tc,
+          d2html: f.rmk_tc?`<span class=amber>${f.rmk_tc}</span>`:"城巴",
+          items: uniqByMin(arr.map(e=>({mins:minsFromNow(e.eta),clock:clockOf(e.eta),rmk:e.rmk_tc}))) });
+      }
+    }
+  }
+  entries.sort((a,b)=> String(a.route).localeCompare(String(b.route),"en",{numeric:true}));
+  return entries;
 }
 function buildEditPanel(stop){
   const p=el("div","editbar");
@@ -228,9 +288,16 @@ function buildEditPanel(stop){
     if(!v) return;
     if(stop.routes.some(r=>r.route.toUpperCase()===v)){ msg.textContent="路線已在列表內"; return; }
     msg.textContent="搜尋中…"; ab.disabled=true;
-    const co=await detectCo(v); ab.disabled=false;
-    if(!co){ msg.textContent="找不到路線 "+v+"（自訂站僅支援九巴 / 城巴）"; return; }
-    stop.routes.push({co, route:v}); persistUserStop(stop); renderBus();
+    let list=await kmbRouteStops(v); let co="kmb";
+    if(!list.length){ list=await ctbRouteStops(v); co="ctb"; }
+    ab.disabled=false;
+    if(!list.length){ msg.textContent="找不到路線 "+v+"（自訂站僅支援九巴 / 城巴）"; return; }
+    const matches=matchStops(list, stop.label);
+    if(matches.length){
+      stop.routes.push({co, route:v, stops:[...new Set(matches.map(m=>m.id))], names:[...new Set(matches.map(m=>m.name).filter(Boolean))]});
+      persistUserStop(stop); renderBus(); return;
+    }
+    showStopPicker(stop, co, v, list, msg, p);
   });
   inp.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); ab.click(); } });
   return p;
@@ -247,8 +314,8 @@ async function buildUserCard(stop, wrap){
   editBtn.addEventListener("click",()=>{ editingStopId = (editingStopId===stop.id)? null : stop.id; renderBus(); });
   if(editingStopId===stop.id) card.appendChild(buildEditPanel(stop));
   if(!stop.routes.length){ body.appendChild(el("div","empty","尚未加入路線 · 按右上「編輯」加入")); return; }
-  let entries=[]; try{ entries=await buildEntries(customCfg(stop)); }catch(e){}
-  if(!entries.length){ body.appendChild(el("div","empty","暫時無班次資料（請確認巴士站名稱）")); }
+  let entries=[]; try{ entries=await customEntries(stop); }catch(e){}
+  if(!entries.length){ body.appendChild(el("div","empty","暫時無班次資料")); }
   else entries.forEach(en=> renderEtaRow(body, en.route, en.routeCls, en.dest, en.d2html, en.items));
 }
 function buildAddCard(wrap){
