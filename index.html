@@ -88,9 +88,9 @@
   .editbar .chip b{cursor:pointer; color:var(--dim); font-weight:700; font-size:13px;}
   .editbar .chip b:active{color:var(--red);}
   .editbar .chipnote{font-size:12px; color:var(--dim);}
-  .editbar .addrow{display:flex; gap:8px;}
+  .editbar .addrow{display:flex; gap:8px; flex-wrap:wrap;}
   .editbar .rin{flex:1; min-width:0; background:var(--bg2); border:1px solid var(--line); border-radius:10px; color:var(--txt); padding:9px 12px; font-size:14px; font-family:inherit;}
-  .editbar .addbtn{background:var(--accent); color:#04121f; border:0; border-radius:10px; padding:0 16px; font-size:14px; font-weight:800; cursor:pointer; font-family:inherit;}
+  .editbar .addbtn{background:var(--accent); color:#04121f; border:0; border-radius:10px; padding:9px 16px; font-size:14px; font-weight:800; cursor:pointer; font-family:inherit;}
   .editbar .editmsg{font-size:12px; color:var(--sub); min-height:15px; margin:8px 2px 0;}
   .editbar .delstop{margin-top:10px; width:100%; background:rgba(255,90,95,.10); color:var(--red); border:1px solid rgba(255,90,95,.3); border-radius:10px; padding:10px; font-size:13px; font-weight:800; cursor:pointer; font-family:inherit;}
   .addcard{border:1px dashed var(--line); border-radius:16px; cursor:pointer; margin-bottom:12px;}
@@ -145,10 +145,6 @@
   .map-wrap{position:absolute; inset:0;}
   .map-wrap iframe{position:absolute; inset:0; width:100%; height:100%; border:0; display:block; background:var(--bg2);}
   .tf-fallback{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:24px; color:var(--sub); font-size:13px; line-height:1.7;}
-  .tf-top{position:absolute; top:calc(var(--safe-top) + 12px); left:12px; right:12px; z-index:5; pointer-events:none;}
-  .tf-title{display:inline-block; background:rgba(16,19,23,.82); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); border:1px solid var(--line); border-radius:14px; padding:8px 14px; pointer-events:auto;}
-  .tf-title .t1{font-size:15px; font-weight:800;}
-  .tf-title .t2{font-size:11px; color:var(--sub); margin-top:1px;}
   .tf-legend{position:absolute; left:12px; bottom:calc(94px + var(--safe-bot)); z-index:5; background:rgba(16,19,23,.82); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); border:1px solid var(--line); border-radius:12px; padding:9px 11px; display:flex; flex-direction:column; gap:6px;}
   .tf-legend .lg{display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--sub);}
   .tf-legend .sw{width:18px; height:5px; border-radius:3px;}
@@ -158,6 +154,54 @@
   .tf-btn.rc{font-size:20px; color:var(--accent);}
   .center-note{text-align:center; color:var(--dim); font-size:12.5px; padding:8px;}
   a.link{color:var(--accent); text-decoration:none;}
+  /* ===== 行程規劃 ===== */
+  .jp{position:absolute; top:calc(var(--safe-top) + 10px); left:10px; right:10px; z-index:6;}
+  .jp-card{background:rgba(16,19,23,.94); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px); border:1px solid var(--line); border-radius:16px; padding:9px; display:flex; flex-direction:column; gap:7px;}
+  .jp-title{font-size:13px; font-weight:800; color:var(--txt); margin:1px 2px;}
+  .jp-row{display:flex; align-items:center; gap:7px;}
+  .jp-in{flex:1; min-width:0; background:var(--bg2); border:1px solid var(--line); border-radius:10px; color:var(--txt); padding:9px 11px; font-size:14px; font-family:inherit;}
+  .jp-gps{flex:0 0 auto; width:38px; height:38px; border-radius:10px; border:1px solid var(--line); background:var(--card2); color:var(--sub); font-size:17px; cursor:pointer;}
+  .jp-gps.on{background:var(--accent); color:#04121f; border-color:var(--accent);}
+  .jp-pin{flex:0 0 auto; width:34px; text-align:center; font-size:16px;}
+  .jp-star{flex:0 0 auto; width:38px; height:38px; border-radius:10px; border:1px solid var(--line); background:var(--card2); font-size:15px; cursor:pointer;}
+  .jp-saved{display:flex; flex-wrap:wrap; gap:6px;}
+  .jp-saved:empty{display:none;}
+  .jp-chip{display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:var(--txt); background:var(--card2); border:1px solid var(--line); border-radius:11px; padding:4px 9px; cursor:pointer;}
+  .jp-chip b{color:var(--dim); cursor:pointer; font-size:11px;}
+  .jp-go{background:var(--accent); color:#04121f; border:0; border-radius:10px; padding:10px; font-size:14px; font-weight:800; cursor:pointer; font-family:inherit;}
+  .jp-msg{font-size:12px; color:var(--sub); min-height:14px; text-align:center;}
+  .jp-sheet{position:absolute; left:0; right:0; bottom:0; z-index:7; max-height:76%; overflow-y:auto; -webkit-overflow-scrolling:touch; background:var(--bg); border-top:1px solid var(--line); border-radius:18px 18px 0 0; padding:10px 14px calc(20px + var(--safe-bot)); box-shadow:0 -10px 30px rgba(0,0,0,.5);}
+  .jp-sheet.hidden{display:none;}
+  .jp-sheet-h{display:flex; align-items:center; gap:8px; position:sticky; top:0; background:var(--bg); padding:6px 0 10px; margin-bottom:6px; border-bottom:1px solid var(--line);}
+  .jp-sheet-h b{font-size:15px; font-weight:800;}
+  .jp-sheet-h .jp-x{margin-left:auto; width:30px; height:30px; display:grid; place-items:center; border-radius:9px; background:var(--card2); border:1px solid var(--line); color:var(--sub); cursor:pointer;}
+  .jp-back{font-size:13px; color:var(--accent); background:none; border:0; cursor:pointer; padding:0; font-family:inherit; font-weight:700;}
+  .jp-cond{font-size:12.5px; font-weight:700; padding:8px 11px; border-radius:11px; margin-bottom:10px;}
+  .jp-cond.g{background:rgba(52,199,89,.12); color:#34c759;}
+  .jp-cond.a{background:rgba(255,176,32,.12); color:#ffb020;}
+  .jp-cond.r{background:rgba(255,90,95,.12); color:#ff5a5f;}
+  .jp-res{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px; margin-bottom:10px; cursor:pointer;}
+  .jp-res:active{background:var(--card2);}
+  .jp-res .top{display:flex; align-items:baseline; gap:8px;}
+  .jp-res .dur{font-size:20px; font-weight:800;}
+  .jp-res .times{font-size:12px; color:var(--sub); margin-left:auto;}
+  .jp-res .lines{display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:8px;}
+  .jp-res .lchip{display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:800; background:var(--card2); border:1px solid var(--line); border-radius:9px; padding:3px 8px;}
+  .jp-res .arrow{color:var(--dim); font-size:11px;}
+  .jp-res .sub{font-size:11px; color:var(--dim); margin-top:7px;}
+  .jp-steps{list-style:none; margin:0; padding:0;}
+  .jp-step{display:flex; gap:11px; padding:11px 0; border-top:1px dashed var(--line);}
+  .jp-step:first-child{border-top:none;}
+  .jp-step .si{flex:0 0 auto; width:30px; text-align:center; font-size:18px;}
+  .jp-step .sc{flex:1; min-width:0;}
+  .jp-step .l1{font-size:14px; font-weight:700;}
+  .jp-step .l2{font-size:12px; color:var(--sub); margin-top:3px;}
+  .jp-step .tm{font-weight:700; color:var(--txt);}
+  .jp-keybox{padding:6px 2px 2px;}
+  .jp-keybox p{font-size:12.5px; color:var(--sub); line-height:1.6; margin:6px 0;}
+  .jp-keybox .rin{width:100%; background:var(--bg2); border:1px solid var(--line); border-radius:10px; color:var(--txt); padding:10px; font-size:13px; margin:8px 0; font-family:inherit;}
+  .jp-keybox .addbtn{width:100%; background:var(--accent); color:#04121f; border:0; border-radius:10px; padding:11px; font-size:14px; font-weight:800; cursor:pointer; font-family:inherit;}
+  .jp-keybox .jp-hint{font-size:11px; color:var(--dim); margin-top:8px;}
 </style>
 </head>
 <body>
@@ -203,12 +247,29 @@
       <div class="tf-fallback" id="tFallback">地圖載入中…<br>若長時間空白，<a class="link" id="tOpenExt" href="#" target="_blank" rel="noopener">按此用 Waze 開啟</a></div>
       <iframe id="wazeFrame" allow="geolocation" referrerpolicy="no-referrer-when-downgrade"></iframe>
     </div>
-    <div class="tf-top">
-      <div class="tf-title">
-        <div class="t1">🚦 實時交通</div>
-        <div class="t2" id="tUpd">載入中…</div>
+
+    <div class="jp">
+      <div class="jp-card">
+        <div class="jp-title">🧭 我要去邊度？</div>
+        <div class="jp-row">
+          <button class="jp-gps" id="jpGps" title="使用實時位置">📍</button>
+          <input id="jpOrigin" class="jp-in" placeholder="起點" />
+        </div>
+        <div class="jp-row">
+          <span class="jp-pin">🎯</span>
+          <input id="jpDest" class="jp-in" placeholder="目的地，例如：中環 / 沙田站" />
+          <button class="jp-star" id="jpStar" title="儲存地點">⭐</button>
+        </div>
+        <div class="jp-saved" id="jpSaved"></div>
+        <button class="jp-go" id="jpGo">搜尋路線</button>
+        <div class="jp-msg" id="jpMsg"></div>
+        <span id="tUpd" style="display:none"></span>
       </div>
     </div>
+
+    <div class="jp-sheet hidden" id="jpResults"></div>
+    <div class="jp-sheet hidden" id="jpDetail"></div>
+
     <div class="tf-legend">
       <div class="lg"><span class="sw" style="background:#34c759"></span>暢通</div>
       <div class="lg"><span class="sw" style="background:#ffb020"></span>緩慢</div>
@@ -278,5 +339,6 @@
 </div>
 
 <script src="app.js?v=2"></script>
+<script src="journey.js?v=1"></script>
 </body>
 </html>
