@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>天水圍實時資訊板</title>
+<style>
+  :root{
+    --bg:#0b0f17; --bg2:#121826; --card:#161e2e; --card2:#1c2740;
+    --txt:#e8edf6; --sub:#93a1bd; --line:#26314a;
+    --accent:#4da3ff; --green:#37d67a; --amber:#ffb02e; --red:#ff5d5d; --purple:#b07bff;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{background:linear-gradient(180deg,#0b0f17,#0e1422);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang HK","Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;overflow:hidden}
+  header{display:flex;align-items:center;justify-content:space-between;
+    padding:14px 20px 10px;gap:12px}
+  .h-left{display:flex;flex-direction:column}
+  .h-title{font-size:18px;font-weight:700;letter-spacing:.5px}
+  .h-sub{font-size:12px;color:var(--sub);margin-top:2px}
+  .clock{font-size:30px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:1px}
+  .h-right{display:flex;align-items:center;gap:10px}
+  .btn{background:var(--card2);border:1px solid var(--line);color:var(--txt);
+    border-radius:999px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;
+    display:flex;align-items:center;gap:6px}
+  .btn.active{background:var(--accent);border-color:var(--accent);color:#04122a}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--sub)}
+  .dot.on{background:var(--green);box-shadow:0 0 8px var(--green)}
+  .dot.err{background:var(--red)}
+  main{height:calc(100% - 138px);overflow-y:auto;padding:4px 16px 24px;-webkit-overflow-scrolling:touch}
+  main::-webkit-scrollbar{display:none}
+  .page{display:none;animation:fade .3s ease}
+  .page.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px 16px 8px;
+    box-shadow:0 6px 22px rgba(0,0,0,.25)}
+  .card-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .card-t{font-size:16px;font-weight:700}
+  .card-tag{font-size:11px;color:var(--sub);background:var(--bg2);padding:3px 9px;border-radius:999px}
+  .row{display:flex;align-items:center;gap:12px;padding:11px 6px;border-top:1px solid var(--line);cursor:pointer}
+  .row:first-of-type{border-top:none}
+  .badge{min-width:62px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:17px;color:#04122a;padding:0 8px;flex:0 0 auto}
+  .badge.kmb{background:#ff4d4f}.badge.lwb{background:#0aa1dd;color:#fff}
+  .badge.ctb{background:#ffd166}.badge.mtrb{background:#a4133c;color:#fff}
+  .badge.lrt{background:#6f42c1;color:#fff}
+  .r-mid{flex:1;min-width:0}
+  .r-dest{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .r-sub{font-size:12px;color:var(--sub);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .r-eta{text-align:right;flex:0 0 auto;min-width:72px}
+  .eta-min{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+  .eta-min small{font-size:12px;font-weight:600;color:var(--sub)}
+  .eta-now{color:var(--green)}
+  .eta-soon{color:var(--amber)}
+  .more{display:none;padding:2px 6px 10px 78px}
+  .more.open{display:block}
+  .more .m-line{display:flex;justify-content:space-between;font-size:13px;color:var(--sub);padding:5px 0;border-top:1px dashed var(--line)}
+  .more .m-line b{color:var(--txt);font-weight:700}
+  .chev{color:var(--sub);font-size:12px;flex:0 0 auto}
+  .empty{color:var(--sub);font-size:13px;padding:10px 6px}
+  /* weather */
+  .wx-hero{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+  .wx-temp{font-size:74px;font-weight:800;line-height:1}
+  .wx-meta{display:flex;flex-direction:column;gap:6px}
+  .wx-place{font-size:18px;font-weight:700}
+  .wx-desc{font-size:14px;color:var(--sub);max-width:520px}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;
+    background:var(--bg2);border:1px solid var(--line);padding:6px 11px;border-radius:999px;margin:4px 6px 0 0}
+  .umb{font-size:17px;font-weight:800;margin-top:6px}
+  .umb .ic{font-size:22px}
+  .warn-wrap{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
+  .warn{display:flex;align-items:center;gap:8px;background:#2a1c10;border:1px solid #6b4a17;
+    color:#ffce85;border-radius:12px;padding:8px 12px;font-size:14px;font-weight:600}
+  .warn img{width:26px;height:26px}
+  .fc{display:flex;gap:10px;overflow-x:auto;padding:4px 2px 8px}
+  .fc::-webkit-scrollbar{display:none}
+  .fc-day{flex:0 0 auto;width:92px;background:var(--card2);border:1px solid var(--line);
+    border-radius:14px;padding:10px;text-align:center}
+  .fc-day .d{font-size:12px;color:var(--sub)}
+  .fc-day .t{font-size:15px;font-weight:700;margin-top:6px}
+  .fc-day .p{font-size:11px;color:var(--accent);margin-top:4px}
+  /* traffic */
+  .news{border-top:1px solid var(--line);padding:12px 4px}
+  .news:first-child{border-top:none}
+  .news .n-h{font-size:15px;font-weight:700;display:flex;gap:8px;align-items:flex-start}
+  .news .n-d{font-size:13px;color:var(--sub);margin-top:5px;line-height:1.5}
+  .news .n-t{font-size:11px;color:var(--sub);margin-top:6px}
+  .tag-area{background:var(--amber);color:#04122a;font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;flex:0 0 auto;margin-top:2px}
+  .loading{color:var(--sub);font-size:14px;padding:20px 6px;text-align:center}
+  nav{display:flex;gap:8px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+    background:rgba(10,14,22,.85);backdrop-filter:blur(12px);border-top:1px solid var(--line)}
+  nav button{flex:1;background:transparent;border:none;color:var(--sub);font-size:13px;font-weight:700;
+    padding:9px;border-radius:14px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px}
+  nav button .ic{font-size:20px}
+  nav button.active{color:var(--accent);background:var(--card)}
+  .src{font-size:11px;color:var(--sub);text-align:center;padding:14px 0 4px}
+  a{color:var(--accent)}
+</style>
+</head>
+<body>
+<header>
+  <div class="h-left">
+    <div class="h-title">天水圍實時資訊板</div>
+    <div class="h-sub" id="updated">載入中…</div>
+  </div>
+  <div class="clock" id="clock">--:--</div>
+  <div class="h-right">
+    <span class="dot" id="netdot" title="連線狀態"></span>
+    <button class="btn" id="locBtn">📍 位置</button>
+  </div>
+</header>
+
+<main>
+  <!-- PAGE 1: ARRIVALS -->
+  <section class="page active" id="page-eta">
+    <div class="grid" id="busGrid"></div>
+    <div style="height:14px"></div>
+    <div class="grid" id="lrtGrid"></div>
+    <div class="src">資料來源：KMB/LWB、城巴、港鐵巴士、港鐵輕鐵 開放數據 · 點擊路線可顯示後兩班</div>
+  </section>
+
+  <!-- PAGE 2: TRAFFIC -->
+  <section class="page" id="page-road">
+    <div class="card">
+      <div class="card-h"><div class="card-t">🚦 特別交通消息</div><div class="card-tag" id="roadTag">新界西北優先</div></div>
+      <div id="roadList"><div class="loading">載入交通消息中…</div></div>
+    </div>
+    <div class="src">資料來源：運輸署「特別交通消息」 · <a href="https://www.hkemobility.gov.hk/tc/traffic-information/live/cctv" target="_blank">即時交通快拍</a></div>
+  </section>
+
+  <!-- PAGE 3: WEATHER -->
+  <section class="page" id="page-wx">
+    <div class="card">
+      <div class="card-h"><div class="card-t">🌤️ 地區天氣</div><div class="card-tag" id="wxPlaceTag">天水圍</div></div>
+      <div class="wx-hero">
+        <div class="wx-temp" id="wxTemp">--°</div>
+        <div class="wx-meta">
+          <div class="wx-place" id="wxPlace">天水圍</div>
+          <div>
+            <span class="pill" id="wxHum">💧 --%</span>
+            <span class="pill" id="wxRain">🌧️ -- mm</span>
+            <span class="pill" id="wxUv">☀️ UV --</span>
+          </div>
+          <div class="umb" id="wxUmb">☂️ 計算緊…</div>
+        </div>
+      </div>
+    </div>
+    <div style="height:14px"></div>
+    <div class="grid">
+      <div class="card">
+        <div class="card-h"><div class="card-t">⚠️ 天文台警告信號</div></div>
+        <div class="warn-wrap" id="wxWarn"><div class="empty">載入中…</div></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><div class="card-t">🌧️ 預計降雨</div></div>
+        <div id="wxRainFc" class="empty">載入中…</div>
+      </div>
+    </div>
+    <div style="height:14px"></div>
+    <div class="card">
+      <div class="card-h"><div class="card-t">📅 未來幾日</div></div>
+      <div class="fc" id="wxFc"></div>
+    </div>
+    <div class="src">資料來源：香港天文台 開放數據</div>
+  </section>
+</main>
+
+<nav>
+  <button class="active" data-page="eta"><span class="ic">🚍</span>到站時間</button>
+  <button data-page="road"><span class="ic">🚦</span>道路資訊</button>
+  <button data-page="wx"><span class="ic">🌤️</span>地區天氣</button>
+</nav>
+
+<script>
+/* ============== CONFIG ============== */
+const ST = "1"; // KMB service type
+const LRT_STATION = 550; // 天逸 Tin Yat
+const LRT_ROUTES = ["705","706","751"];
+const BUS_STOPS = [
+  { title:"天逸邨逸潭樓", match:["逸潭樓"], routes:[
+    {co:"kmb",route:"265M"},{co:"kmb",route:"265B"},{co:"kmb",route:"276A"},
+    {co:"kmb",route:"A37"},{co:"kmb",route:"E37"},{co:"kmb",route:"NA37"},
+    {co:"mtrb",route:"K73",stop:"K73-U020"},{co:"mtrb",route:"K76",stop:"K76-U020"} ]},
+  { title:"天恒邨總站", match:["天恒邨總站","天恒","天恆"], routes:[
+    {co:"kmb",route:"265M"},{co:"kmb",route:"276A"},{co:"kmb",route:"265B"},
+    {co:"mtrb",route:"K73",stop:"K73-U010"},{co:"mtrb",route:"K76",stop:"K76-U010"} ]},
+  { title:"天澤邨", match:["天澤"], routes:[
+    {co:"kmb",route:"269M"},{co:"ctb",route:"967"},{co:"ctb",route:"967X"} ]}
+];
+const CO_NAME={kmb:"九巴",lwb:"龍運",ctb:"城巴",mtrb:"港鐵巴士",lrt:"輕鐵"};
+const LWB_ROUTES=["A37","E37","NA37"];
+const PROXIES=[u=>u, u=>"https://corsproxy.io/?url="+encodeURIComponent(u), u=>"https://api.allorigins.win/raw?url="+encodeURIComponent(u)];
+
+let geo=null;
+
+/* ============== UTILITIES ============== */
+const $=s=>document.querySelector(s);
+const el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
+function setNet(ok){const d=$("#netdot");d.className="dot "+(ok?"on":"err");}
+async function jget(url){
+  let lastErr;
+  for(const p of PROXIES){
+    try{const r=await fetch(p(url),{cache:"no-store"});if(!r.ok)throw 0;return await r.json();}
+    catch(e){lastErr=e;}
+  }
+  throw lastErr||new Error("fetch fail");
+}
+async function jpost(url,body){
+  const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  if(!r.ok)throw new Error("post fail");return await r.json();
+}
+async function ttext(url){
+  let lastErr;
+  for(const p of PROXIES){
+    try{const r=await fetch(p(url),{cache:"no-store"});if(!r.ok)throw 0;return await r.text();}
+    catch(e){lastErr=e;}
+  }
+  throw lastErr||new Error("fetch fail");
+}
+function minsFromIso(iso){if(!iso)return null;const d=(new Date(iso)-new Date())/60000;return Math.round(d);}
+function etaCell(min){
+  if(min==null)return '<div class="eta-min" style="color:var(--sub)">—</div>';
+  if(min<=0)return '<div class="eta-min eta-now">即將</div>';
+  let cls=min<=3?"eta-soon":"";
+  return '<div class="eta-min '+cls+'">'+min+'<small> 分</small></div>';
+}
+function cache(key,ttlMs,fn){
+  try{const raw=localStorage.getItem(key);if(raw){const o=JSON.parse(raw);if(Date.now()-o.t<ttlMs)return Promise.resolve(o.v);}}catch(e){}
+  return fn().then(v=>{try{localStorage.setItem(key,JSON.stringify({t:Date.now(),v}));}catch(e){}return v;});
+}
+
+/* ============== KMB / LWB ============== */
+let KMB_STOPDB=null;
+function kmbStopDB(){
+  if(KMB_STOPDB)return Promise.resolve(KMB_STOPDB);
+  return cache("kmb_stopdb_v1",6*3600*1000,()=>jget("https://data.etabus.gov.hk/v1/transport/kmb/stop").then(j=>{
+    const m={};(j.data||[]).forEach(s=>m[s.stop]=s.name_tc);return m;
+  })).then(m=>{KMB_STOPDB=m;return m;});
+}
+function kmbRouteStop(route,bound){
+  return cache("kmb_rs_"+route+"_"+bound,6*3600*1000,()=>
+    jget("https://data.etabus.gov.hk/v1/transport/kmb/route-stop/"+route+"/"+bound+"/"+ST).then(j=>j.data||[]));
+}
+async function kmbResolve(route,matches){
+  const db=await kmbStopDB();
+  const out=[];
+  for(const bound of ["outbound","inbound"]){
+    let rs;try{rs=await kmbRouteStop(route,bound);}catch(e){continue;}
+    for(const kw of matches){
+      const hit=rs.find(x=>(db[x.stop]||"").includes(kw));
+      if(hit){out.push({stop:hit.stop,bound});break;}
+    }
+  }
+  return out;
+}
+async function kmbEntries(co,route,matches){
+  const resolved=await kmbResolve(route,matches);
+  const entries=[];
+  for(const r of resolved){
+    let j;try{j=await jget("https://data.etabus.gov.hk/v1/transport/kmb/eta/"+r.stop+"/"+route+"/"+ST);}catch(e){continue;}
+    const dir=r.bound==="outbound"?"O":"I";
+    const rows=(j.data||[]).filter(x=>x.dir===dir&&x.eta).sort((a,b)=>a.eta_seq-b.eta_seq);
+    if(!rows.length){
+      // still show route with no eta if resolved
+      entries.push({co,route,dest:(j.data&&j.data[0]&&j.data[0].dest_tc)||"",etas:[],remark:""});
+      continue;
+    }
+    entries.push({co,route,dest:rows[0].dest_tc,remark:rows[0].rmk_tc||"",
+      etas:rows.slice(0,3).map(x=>({min:minsFromIso(x.eta),remark:x.rmk_tc||""}))});
+  }
+  return entries;
+}
+
+/* ============== CITYBUS ============== */
+let CTB_STOPNAME={};
+function ctbStopName(id){
+  if(CTB_STOPNAME[id])return Promise.resolve(CTB_STOPNAME[id]);
+  return cache("ctb_stop_"+id,24*3600*1000,()=>jget("https://rt.data.gov.hk/v2/transport/citybus/stop/"+id).then(j=>(j.data&&j.data.name_tc)||""))
+    .then(n=>{CTB_STOPNAME[id]=n;return n;});
+}
+function ctbRouteStop(route,dir){
+  return cache("ctb_rs_"+route+"_"+dir,6*3600*1000,()=>
+    jget("https://rt.data.gov.hk/v2/transport/citybus/route-stop/CTB/"+route+"/"+dir).then(j=>j.data||[]));
+}
+async function ctbEntries(route,matches){
+  const entries=[];
+  for(const dir of ["inbound","outbound"]){
+    let rs;try{rs=await ctbRouteStop(route,dir);}catch(e){continue;}
+    let target=null;
+    for(const x of rs){const nm=await ctbStopName(x.stop);if(matches.some(kw=>nm.includes(kw))){target=x;break;}}
+    if(!target)continue;
+    let j;try{j=await jget("https://rt.data.gov.hk/v2/transport/citybus/eta/CTB/"+target.stop+"/"+route);}catch(e){continue;}
+    const rows=(j.data||[]).filter(x=>x.eta).sort((a,b)=>a.eta_seq-b.eta_seq);
+    if(!rows.length)continue;
+    entries.push({co:"ctb",route,dest:rows[0].dest_tc,remark:rows[0].rmk_tc||"",
+      etas:rows.slice(0,3).map(x=>({min:minsFromIso(x.eta),remark:x.rmk_tc||""}))});
+  }
+  return entries;
+}
+
+/* ============== MTR BUS ============== */
+async function mtrbEntries(route,stopId){
+  let j;try{j=await jpost("https://rt.data.gov.hk/v1/transport/mtr/bus/getSchedule",{language:"zh",routeName:route});}catch(e){return [];}
+  const bs=(j.busStop||[]).find(b=>b.busStopId===stopId);
+  const dest=(j.routeName? "":"");
+  if(!bs||!bs.bus||!bs.bus.length){return [{co:"mtrb",route,dest:"",etas:[],remark:""}];}
+  const buses=bs.bus.map(b=>{
+    let s=b.arrivalTimeInSecond, t=b.arrivalTimeText;
+    if((s===undefined||s==="108000")&&b.departureTimeInSecond!==undefined){s=b.departureTimeInSecond;t=b.departureTimeText;}
+    let min=null;const sec=parseInt(s,10);
+    if(!isNaN(sec))min=Math.round(sec/60);
+    else if(t&&/\d/.test(t))min=parseInt(t,10);
+    return {min};
+  }).filter(b=>b.min!=null).sort((a,b)=>a.min-b.min);
+  return [{co:"mtrb",route,dest:"港鐵天水圍站方向",remark:"",etas:buses.slice(0,3)}];
+}
+
+/* ============== LRT ============== */
+async function lrtEntries(){
+  let j;try{j=await jget("https://rt.data.gov.hk/v1/transport/mtr/lrt/getSchedule?station_id="+LRT_STATION);}catch(e){return [];}
+  const map={};
+  (j.platform_list||[]).forEach(p=>{
+    (p.route_list||[]).forEach(r=>{
+      const key=r.route_no+"|"+r.dest_ch;
+      if(!map[key])map[key]={route:r.route_no,dest:r.dest_ch,times:[]};
+      map[key].times.push(r.time_ch||r.time_en||"-");
+    });
+  });
+  return Object.values(map).sort((a,b)=>a.route.localeCompare(b.route));
+}
+
+/* ============== RENDER ARRIVALS ============== */
+function badgeClass(co,route){if(co==="kmb"&&LWB_ROUTES.includes(route))return "lwb";return co;}
+function renderBusEntry(e){
+  const row=el("div","row");
+  const first=e.etas&&e.etas.length?e.etas[0].min:null;
+  row.innerHTML=
+    '<div class="badge '+badgeClass(e.co,e.route)+'">'+e.route+'</div>'+
+    '<div class="r-mid"><div class="r-dest">'+(e.dest||"—")+'</div>'+
+    '<div class="r-sub">'+CO_NAME[e.co]+(e.remark?" · "+e.remark:"")+'</div></div>'+
+    '<div class="r-eta">'+etaCell(first)+'</div>'+
+    '<div class="chev">▾</div>';
+  const more=el("div","more");
+  const next=(e.etas||[]).slice(1,3);
+  if(next.length){more.innerHTML=next.map((x,i)=>'<div class="m-line"><span>第 '+(i+2)+' 班</span>'+
+    '<b>'+(x.min==null?"—":x.min<=0?"即將":x.min+" 分鐘")+'</b></div>').join("");}
+  else{more.innerHTML='<div class="m-line"><span>暫無更多班次</span><b>—</b></div>';}
+  row.addEventListener("click",()=>{more.classList.toggle("open");row.querySelector(".chev").textContent=more.classList.contains("open")?"▴":"▾";});
+  const wrap=el("div");wrap.appendChild(row);wrap.appendChild(more);return wrap;
+}
+function renderLrtEntry(e){
+  const row=el("div","row");
+  const t0=e.times[0]||"-";
+  row.innerHTML=
+    '<div class="badge lrt">'+e.route+'</div>'+
+    '<div class="r-mid"><div class="r-dest">往 '+e.dest+'</div><div class="r-sub">輕鐵 · 天逸站</div></div>'+
+    '<div class="r-eta"><div class="eta-min '+(/即將|抵達|-/.test(t0)?"eta-now":"")+'" style="font-size:16px">'+t0+'</div></div>'+
+    '<div class="chev">▾</div>';
+  const more=el("div","more");
+  const next=e.times.slice(1,3);
+  more.innerHTML=(next.length?next:["—"]).map((x,i)=>'<div class="m-line"><span>第 '+(i+2)+' 班</span><b>'+x+'</b></div>').join("");
+  row.addEventListener("click",()=>{more.classList.toggle("open");row.querySelector(".chev").textContent=more.classList.contains("open")?"▴":"▾";});
+  const wrap=el("div");wrap.appendChild(row);wrap.appendChild(more);return wrap;
+}
+async function loadBusStop(cfg,card){
+  const body=card.querySelector(".card-body");
+  const tasks=cfg.routes.map(r=>{
+    if(r.co==="kmb")return kmbEntries(r.co,r.route,cfg.match);
+    if(r.co==="ctb")return ctbEntries(r.route,cfg.match);
+    if(r.co==="mtrb")return mtrbEntries(r.route,r.stop);
+    return Promise.resolve([]);
+  });
+  const res=await Promise.allSettled(tasks);
+  const order={};cfg.routes.forEach((r,i)=>order[r.route]=i);
+  let entries=[];res.forEach(x=>{if(x.status==="fulfilled")entries=entries.concat(x.value);});
+  entries.sort((a,b)=>{const d=(order[a.route]??99)-(order[b.route]??99);if(d)return d;
+    const am=a.etas&&a.etas[0]?a.etas[0].min:999,bm=b.etas&&b.etas[0]?b.etas[0].min:999;return am-bm;});
+  body.innerHTML="";
+  if(!entries.length){body.appendChild(el("div","empty","暫時未有班次資料"));return;}
+  entries.forEach(e=>body.appendChild(renderBusEntry(e)));
+}
+function buildBusCards(){
+  const grid=$("#busGrid");grid.innerHTML="";
+  BUS_STOPS.forEach(cfg=>{
+    const card=el("div","card");
+    card.innerHTML='<div class="card-h"><div class="card-t">🚌 '+cfg.title+'</div><div class="card-tag">'+cfg.routes.length+' 條路線</div></div><div class="card-body"><div class="empty">載入中…</div></div>';
+    grid.appendChild(card);cfg._card=card;
+  });
+}
+async function loadLrt(){
+  const grid=$("#lrtGrid");
+  let card=grid.querySelector(".card");
+  if(!card){card=el("div","card");card.innerHTML='<div class="card-h"><div class="card-t">🚈 輕鐵 · 天逸站</div><div class="card-tag">Tin Yat</div></div><div class="card-body"><div class="empty">載入中…</div></div>';grid.appendChild(card);}
+  const body=card.querySelector(".card-body");
+  const entries=await lrtEntries();
+  body.innerHTML="";
+  if(!entries.length){body.appendChild(el("div","empty","暫時未有輕鐵班次（深夜時段可能停駛）"));return;}
+  entries.forEach(e=>body.appendChild(renderLrtEntry(e)));
+}
+async function refreshArrivals(){
+  try{
+    await Promise.allSettled(BUS_STOPS.map(c=>loadBusStop(c,c._card)));
+    await loadLrt();
+    setNet(true);
+    $("#updated").textContent="到站時間 · 已更新 "+new Date().toLocaleTimeString("zh-HK",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+  }catch(e){setNet(false);}
+}
+
+/* ============== WEATHER ============== */
+const STN=[{n:"天水圍",la:22.4488,lo:114.0040},{n:"屯門",la:22.3880,lo:113.9740},
+  {n:"荃灣可觀",la:22.3833,lo:114.1167},{n:"沙田",la:22.4025,lo:114.2100},
+  {n:"大埔",la:22.4467,lo:114.1700},{n:"上水",la:22.5028,lo:114.1139},
+  {n:"流浮山",la:22.4678,lo:113.9819},{n:"九龍城",la:22.3358,lo:114.1828},
+  {n:"香港天文台",la:22.3019,lo:114.1742},{n:"打鼓嶺",la:22.5283,lo:114.1556}];
+function nearestStation(){
+  if(!geo)return "天水圍";
+  let best="天水圍",bd=1e9;
+  STN.forEach(s=>{const d=Math.hypot(s.la-geo.lat,s.lo-geo.lng);if(d<bd){bd=d;best=s.n;}});
+  return best;
+}
+function warnIcon(code){return "https://www.hko.gov.hk/en/wxinfo/dailywx/images/"+code+".gif";}
+async function loadWeather(){
+  let rh,ws,fnd,flw;
+  try{[rh,ws,fnd,flw]=await Promise.all([
+    jget("https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc"),
+    jget("https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=warnsum&lang=tc"),
+    jget("https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=fnd&lang=tc"),
+    jget("https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=flw&lang=tc")
+  ]);}catch(e){setNet(false);return;}
+  // temperature
+  const want=nearestStation();
+  const temps=(rh.temperature&&rh.temperature.data)||[];
+  let t=temps.find(x=>x.place===want)||temps.find(x=>x.place==="天水圍")||temps.find(x=>x.place==="香港天文台")||temps[0];
+  if(t){$("#wxTemp").textContent=Math.round(t.value)+"°";$("#wxPlace").textContent=t.place;$("#wxPlaceTag").textContent=t.place;}
+  // humidity
+  const hum=(rh.humidity&&rh.humidity.data&&rh.humidity.data[0]);
+  if(hum)$("#wxHum").textContent="💧 "+hum.value+"%";
+  // rainfall (max in NW area / Yuen Long)
+  const rain=(rh.rainfall&&rh.rainfall.data)||[];
+  const yl=rain.find(x=>x.place&&x.place.includes("元朗"));
+  const rmax=yl||rain.reduce((a,b)=>((b.max||0)>(a.max||0)?b:a),{max:0,place:""});
+  $("#wxRain").textContent="🌧️ "+(rmax.max||0)+" mm"+(rmax.place?"（"+rmax.place+"）":"");
+  // uv
+  const uv=(rh.uvindex&&rh.uvindex.data&&rh.uvindex.data[0]);
+  $("#wxUv").textContent="☀️ UV "+(uv?uv.value:"--");
+  // warnings
+  const ww=$("#wxWarn");ww.innerHTML="";
+  const active=Object.values(ws||{}).filter(w=>w&&w.name&&(!w.actionCode||w.actionCode!=="CANCEL"));
+  if(!active.length){ww.appendChild(el("div","empty","✅ 目前沒有生效的天氣警告"));}
+  else active.forEach(w=>{
+    const d=el("div","warn");
+    let img="";if(w.code)img='<img src="'+warnIcon(w.code)+'" onerror="this.style.display=&quot;none&quot;">';
+    d.innerHTML=img+'<span>'+w.name+(w.issueTime?'<br><span style="font-size:11px;opacity:.7">'+w.issueTime.replace("T"," ").slice(0,16)+'</span>':'')+'</span>';
+    ww.appendChild(d);
+  });
+  // umbrella advice
+  const rainStorm=active.some(w=>/雨|暴雨|雷暴/.test(w.name));
+  const today=(fnd.weatherForecast&&fnd.weatherForecast[0])||{};
+  const psr=today.PSR||"";
+  const wxText=today.forecastWeather||"";
+  const rainyText=/雨|驟雨|雷暴/.test(wxText);
+  const highPSR=/高|中高/.test(psr);
+  let umb,ic;
+  if(rainStorm||highPSR){umb="記得帶遮！有明顯降雨機會";ic="☔";}
+  else if(rainyText||/中(?!低)/.test(psr)){umb="建議帶遮，有機會落雨";ic="🌂";}
+  else{umb="唔使帶遮，天氣大致良好";ic="😎";}
+  $("#wxUmb").innerHTML='<span class="ic">'+ic+'</span> '+umb;
+  // expected rain
+  const rf=$("#wxRainFc");
+  let html="";
+  if(flw&&flw.forecastDesc)html+='<div style="font-size:14px;line-height:1.6">'+flw.forecastDesc+'</div>';
+  if(psr)html+='<div class="pill" style="margin-top:10px">🌧️ 今日降雨概率：'+psr+'</div>';
+  const nextRainDay=(fnd.weatherForecast||[]).find(d=>/雨|驟雨|雷暴/.test(d.forecastWeather||""));
+  if(nextRainDay){const ds=String(nextRainDay.forecastDate);html+='<div class="pill" style="margin-top:10px">📆 預計 '+ds.slice(4,6)+'月'+ds.slice(6,8)+'日 有雨：'+nextRainDay.forecastWeather+'</div>';}
+  else html+='<div class="pill" style="margin-top:10px">未來數日大致沒有顯著降雨</div>';
+  rf.innerHTML=html||'<div class="empty">暫無降雨預報</div>';
+  // 9-day
+  const fc=$("#wxFc");fc.innerHTML="";
+  (fnd.weatherForecast||[]).slice(0,7).forEach(d=>{
+    const ds=String(d.forecastDate);
+    const day=el("div","fc-day");
+    day.innerHTML='<div class="d">'+ds.slice(4,6)+'/'+ds.slice(6,8)+'<br>'+(d.week?"週"+d.week:"")+'</div>'+
+      '<div class="t">'+d.forecastMintemp.value+'°–'+d.forecastMaxtemp.value+'°</div>'+
+      '<div class="p">'+(d.PSR?"雨 "+d.PSR:"")+'</div>';
+    fc.appendChild(day);
+  });
+  setNet(true);
+  $("#updated").textContent="天氣 · 已更新 "+new Date().toLocaleTimeString("zh-HK",{hour:"2-digit",minute:"2-digit"});
+}
+
+/* ============== TRAFFIC ============== */
+const AREA_KW=["天水圍","元朗","屯門","新界西北","洪水橋","流浮山","錦田","博愛","朗屏","青山公路","屯門公路","元朗公路","新田","米埔","廈村"];
+async function loadTraffic(){
+  const list=$("#roadList");
+  let xml;
+  try{xml=await ttext("https://resource.data.one.gov.hk/td/en/specialtrafficnews.xml");}
+  catch(e){list.innerHTML='<div class="empty">未能載入交通消息（資料來源未開放跨網存取）。<br><a href="https://www.hkemobility.gov.hk/tc/traffic-information/special-traffic-news" target="_blank">按此查看運輸署特別交通消息 →</a></div>';return;}
+  let doc;try{doc=new DOMParser().parseFromString(xml,"text/xml");}catch(e){list.innerHTML='<div class="empty">資料解析失敗</div>';return;}
+  const msgs=Array.from(doc.getElementsByTagName("message"));
+  const get=(m,tag)=>{const n=m.getElementsByTagName(tag)[0];return n?n.textContent.trim():"";};
+  let items=msgs.map(m=>{
+    const heading=get(m,"Incident_Heading_CN")||get(m,"CONTENT_CHI")||get(m,"chinese")||get(m,"Incident_Heading_EN");
+    const detail=get(m,"Incident_Detail_CN")||get(m,"INFORMATIONCONTENTS")||get(m,"Incident_Detail_EN");
+    const date=get(m,"Announcement_Date")||get(m,"ReferenceDate")||get(m,"date");
+    const status=get(m,"CurrentStatus");
+    return {heading,detail,date,status,text:(heading+" "+detail)};
+  }).filter(x=>x.heading||x.detail);
+  // keep current (status 1) first; sort area-relevant first
+  items=items.filter(x=>x.status!=="0");
+  items.sort((a,b)=>{
+    const aa=AREA_KW.some(k=>a.text.includes(k))?0:1;
+    const bb=AREA_KW.some(k=>b.text.includes(k))?0:1;
+    return aa-bb;
+  });
+  list.innerHTML="";
+  if(!items.length){list.innerHTML='<div class="empty">✅ 目前沒有特別交通消息</div>';setNet(true);return;}
+  items.slice(0,25).forEach(x=>{
+    const isArea=AREA_KW.some(k=>x.text.includes(k));
+    const n=el("div","news");
+    n.innerHTML='<div class="n-h">'+(isArea?'<span class="tag-area">西北</span>':'')+'<span>'+(x.heading||"交通消息")+'</span></div>'+
+      (x.detail?'<div class="n-d">'+x.detail+'</div>':'')+
+      (x.date?'<div class="n-t">'+x.date+'</div>':'');
+    list.appendChild(n);
+  });
+  setNet(true);
+  $("#updated").textContent="道路 · 已更新 "+new Date().toLocaleTimeString("zh-HK",{hour:"2-digit",minute:"2-digit"});
+}
+
+/* ============== NAV / CLOCK / LOCATION ============== */
+let current="eta";
+function switchPage(p){
+  current=p;
+  document.querySelectorAll(".page").forEach(s=>s.classList.toggle("active",s.id==="page-"+p));
+  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===p));
+  if(p==="eta")refreshArrivals();
+  if(p==="road")loadTraffic();
+  if(p==="wx")loadWeather();
+}
+document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>switchPage(b.dataset.page)));
+function tick(){$("#clock").textContent=new Date().toLocaleTimeString("zh-HK",{hour:"2-digit",minute:"2-digit"});}
+setInterval(tick,1000);tick();
+$("#locBtn").addEventListener("click",()=>{
+  if(!navigator.geolocation){alert("此裝置不支援定位");return;}
+  $("#locBtn").textContent="📍 定位中…";
+  navigator.geolocation.getCurrentPosition(pos=>{
+    geo={lat:pos.coords.latitude,lng:pos.coords.longitude};
+    $("#locBtn").textContent="📍 已開啟";$("#locBtn").classList.add("active");
+    if(current==="wx")loadWeather();
+  },err=>{$("#locBtn").textContent="📍 位置";alert("無法取得位置："+err.message);},{enableHighAccuracy:true,timeout:10000});
+});
+
+/* ============== INIT + AUTO REFRESH ============== */
+buildBusCards();
+refreshArrivals();
+setInterval(()=>{if(current==="eta")refreshArrivals();},30000);
+setInterval(()=>{if(current==="road")loadTraffic();},90000);
+setInterval(()=>{if(current==="wx")loadWeather();},120000);
+</script>
+</body>
+</html>
