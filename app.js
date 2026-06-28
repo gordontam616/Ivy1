@@ -200,16 +200,41 @@ async function kmbRouteStops(route){
   try{ await loadStopList(); }catch(e){}
   let all=[];
   for(const b of ["outbound","inbound"]){
-    try{ const j=await fetchJSON(`${KMB}/route-stop/${route}/${b}/1`); (j.data||[]).forEach(x=> all.push({id:x.stop, name:stopNameById(x.stop), bound:b})); }catch(e){}
+    try{ const j=await fetchJSON(`${KMB}/route-stop/${route}/${b}/1`); const arr=(j.data||[]); const dest=arr.length? stopNameById(arr[arr.length-1].stop):""; arr.forEach(x=> all.push({id:x.stop, name:stopNameById(x.stop), bound:b, dest})); }catch(e){}
   }
   return all;
 }
 async function ctbRouteStops(route){
   let all=[];
   for(const d of ["inbound","outbound"]){
-    try{ const j=await fetchJSON(`${CTB}/route-stop/CTB/${route}/${d}`); for(const x of (j.data||[])){ const nm=await ctbStopName(x.stop); all.push({id:x.stop, name:nm, bound:d}); } }catch(e){}
+    try{ const j=await fetchJSON(`${CTB}/route-stop/CTB/${route}/${d}`); const arr=(j.data||[]); let dest=""; if(arr.length){ dest=await ctbStopName(arr[arr.length-1].stop); } for(const x of arr){ const nm=await ctbStopName(x.stop); all.push({id:x.stop, name:nm, bound:d, dest}); } }catch(e){}
   }
   return all;
+}
+function groupByDir(items){
+  const m={};
+  items.forEach(s=>{ const k=s.bound||"_"; if(!m[k]) m[k]={bound:s.bound, dest:s.dest||"", stops:[], names:[]}; if(!m[k].stops.includes(s.id)) m[k].stops.push(s.id); if(s.name && !m[k].names.includes(s.name)) m[k].names.push(s.name); if(s.dest) m[k].dest=s.dest; });
+  return Object.values(m);
+}
+function addRouteToStop(stop, co, route, stops, names){
+  stop.routes.push({co, route, stops:stops.slice(), names:(names||[]).slice()});
+  persistUserStop(stop); renderBus();
+}
+function showDirConfirm(stop, co, route, dirs, msg, panel){
+  const old=panel.querySelector(".pickerrow"); if(old) old.remove();
+  msg.textContent="請確認「"+route+"」方向：";
+  const row=el("div","addrow pickerrow");
+  dirs.forEach(d=>{
+    const b=el("button","addbtn","往 "+(d.dest||"?"));
+    b.addEventListener("click",()=> addRouteToStop(stop, co, route, d.stops, d.names));
+    row.appendChild(b);
+  });
+  if(dirs.length>1){
+    const both=el("button","addbtn","兩個方向");
+    both.addEventListener("click",()=>{ const ids=[],nm=[]; dirs.forEach(d=>{ d.stops.forEach(i=>{ if(!ids.includes(i)) ids.push(i); }); d.names.forEach(n=>{ if(!nm.includes(n)) nm.push(n); }); }); addRouteToStop(stop, co, route, ids, nm); });
+    row.appendChild(both);
+  }
+  panel.insertBefore(row, msg);
 }
 function showStopPicker(stop, co, route, list, msg, panel){
   const old=panel.querySelector(".pickerrow"); if(old) old.remove();
@@ -218,12 +243,12 @@ function showStopPicker(stop, co, route, list, msg, panel){
   const seen=new Set();
   list.forEach(s=>{ if(!s.id||seen.has(s.id))return; seen.add(s.id);
     const o=document.createElement("option"); o.value=s.id;
-    const dir=s.bound? (/out/i.test(s.bound)?" · 去程":" · 回程"):"";
+    const dir=s.dest? (" → "+s.dest) : (s.bound? (/out/i.test(s.bound)?" · 去程":" · 回程"):"");
     o.textContent=(s.name||s.id)+dir; sel.appendChild(o); });
   const ok=el("button","addbtn","確認");
   const row=el("div","addrow pickerrow"); row.appendChild(sel); row.appendChild(ok);
   panel.insertBefore(row, msg);
-  ok.addEventListener("click",()=>{ const id=sel.value; const nm=(list.find(x=>x.id===id)||{}).name||""; stop.routes.push({co, route, stops:[id], names:[nm]}); persistUserStop(stop); renderBus(); });
+  ok.addEventListener("click",()=>{ const id=sel.value; const it=list.find(x=>x.id===id)||{}; addRouteToStop(stop, co, route, [id], it.name?[it.name]:[]); });
 }
 async function customEntries(stop){
   try{ await loadStopList(); }catch(e){}
@@ -293,10 +318,8 @@ function buildEditPanel(stop){
     ab.disabled=false;
     if(!list.length){ msg.textContent="找不到路線 "+v+"（自訂站僅支援九巴 / 城巴）"; return; }
     const matches=matchStops(list, stop.label);
-    if(matches.length){
-      stop.routes.push({co, route:v, stops:[...new Set(matches.map(m=>m.id))], names:[...new Set(matches.map(m=>m.name).filter(Boolean))]});
-      persistUserStop(stop); renderBus(); return;
-    }
+    const dirs=groupByDir(matches);
+    if(dirs.length){ showDirConfirm(stop, co, v, dirs, msg, p); return; }
     showStopPicker(stop, co, v, list, msg, p);
   });
   inp.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); ab.click(); } });
