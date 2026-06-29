@@ -39,14 +39,14 @@ function renderKeyPrompt(){
   const box=$("#jpResults"); if(!box) return;
   box.innerHTML='<div class="jp-sheet-h"><b>需要 Google Maps API Key</b><span class="jp-x" data-close="#jpResults">✕</span></div>'+
     '<div class="jp-keybox">'+
-    '<p>公共交通路線規劃由 Google Directions 提供。請貼上你的 <b>Google Maps API Key</b>（需啟用 <b>Maps JavaScript API</b> 及 <b>Directions API</b>）。Key 只會存在你部機，不會上傳。</p>'+
+    '<p>公共交通路線規劃及實時路況由 Google Maps 提供。請貼上你的 <b>Google Maps API Key</b>（需啟用 <b>Maps JavaScript API</b> 及 <b>Directions API</b>）。Key 只會存在你部機，不會上傳。</p>'+
     '<input id="jpKeyInput" class="rin" placeholder="貼上 API key…" />'+
     '<button class="addbtn" id="jpKeySave">儲存並啟用</button>'+
     '<p class="jp-hint">建議在 Google Cloud Console 將 key 限制 HTTP referrer 為你的 GitHub Pages 網域，以免被什人盜用。</p>'+
     '</div>';
   openSheet("#jpResults");
   const sv=$("#jpKeySave");
-  if(sv) sv.addEventListener("click",function(){ const k=($("#jpKeyInput").value||"").trim(); if(!k) return; setGKey(k); closeSheet("#jpResults"); jpMsg("已儲存 API key，再按一次搜尋路線。"); });
+  if(sv) sv.addEventListener("click",function(){ const k=($("#jpKeyInput").value||"").trim(); if(!k) return; setGKey(k); closeSheet("#jpResults"); jpMsg("已儲存 API key。"); if(typeof initTraffic==="function"){ try{ initTraffic(true); }catch(e){} } });
 }
 
 function renderSaved(){
@@ -154,6 +154,41 @@ function fetchDriveCond(origin, dest){
     });
   }catch(e){ DRIVE_COND={label:"暫無資料",cls:"a",extra:0}; updateCondLine(); }
 }
+
+/* ===== 實時交通地圖（Google Maps + 路況圖層） ===== */
+const MAP_DARK=[
+  {elementType:"geometry",stylers:[{color:"#1b2026"}]},
+  {elementType:"labels.text.stroke",stylers:[{color:"#0b0d10"}]},
+  {elementType:"labels.text.fill",stylers:[{color:"#9aa6b2"}]},
+  {featureType:"poi",stylers:[{visibility:"off"}]},
+  {featureType:"transit",elementType:"labels.icon",stylers:[{visibility:"off"}]},
+  {featureType:"road",elementType:"geometry",stylers:[{color:"#2a323b"}]},
+  {featureType:"road",elementType:"labels.text.fill",stylers:[{color:"#6b7682"}]},
+  {featureType:"road.highway",elementType:"geometry",stylers:[{color:"#3a4654"}]},
+  {featureType:"water",elementType:"geometry",stylers:[{color:"#0e141b"}]},
+  {featureType:"administrative",elementType:"geometry",stylers:[{color:"#2a323b"}]}
+];
+let JP_MAP=null, JP_TRAFFIC=null;
+function initTrafficMap(loc, zoom, force){
+  const f=$("#tFallback");
+  if(!gKey()){
+    if(f){ f.style.display=""; f.innerHTML='需要 Google Maps API Key 才能顯示實時路況。<br><a class="link" id="tSetKey" href="#">按此輸入 API Key</a>'; const sk=$("#tSetKey"); if(sk) sk.addEventListener("click",function(e){ e.preventDefault(); renderKeyPrompt(); }); }
+    return;
+  }
+  if(f){ f.style.display=""; f.textContent="地圖載入中…"; }
+  ensureMaps(function(){
+    const gm=$("#gmap"); if(!gm) return;
+    const c={lat:loc.lat, lng:loc.lon};
+    if(!JP_MAP){
+      JP_MAP=new google.maps.Map(gm, { center:c, zoom:zoom||14, disableDefaultUI:true, gestureHandling:"greedy", clickableIcons:false, styles:MAP_DARK });
+      JP_TRAFFIC=new google.maps.TrafficLayer(); JP_TRAFFIC.setMap(JP_MAP);
+    } else { JP_MAP.setCenter(c); if(zoom) JP_MAP.setZoom(zoom); }
+    setTimeout(function(){ if(JP_MAP) google.maps.event.trigger(JP_MAP,"resize"); }, 200);
+    if(f) f.style.display="none";
+  });
+}
+function trafficZoom(z){ if(JP_MAP) JP_MAP.setZoom(z); }
+function trafficRecenter(loc){ if(JP_MAP) JP_MAP.setCenter({lat:loc.lat, lng:loc.lon}); }
 
 function transitStepsOf(route){ return route.legs[0].steps.filter(function(s){ return s.travel_mode==="TRANSIT"; }); }
 function vehEmoji(step){
