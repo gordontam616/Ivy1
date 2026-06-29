@@ -13,6 +13,13 @@ function jpMsg(t){ const m=$("#jpMsg"); if(m) m.textContent=t||""; }
 function openSheet(sel){ const s=$(sel); if(s) s.classList.remove("hidden"); }
 function closeSheet(sel){ const s=$(sel); if(s) s.classList.add("hidden"); }
 
+window.gm_authFailure=function(){
+  mapsReady=false; mapsLoading=false; acDone=false;
+  const f=$("#tFallback");
+  if(f){ f.style.display=""; f.innerHTML='⚠️ Google 地圖授權失敗。<br>可能原因：key 無效 / 未啟用 Maps JavaScript API / 網域限制不符 / 未開啟計費。<br><a class="link" id="tSetKey" href="#">按此輸入 / 更換 API Key</a>'; const sk=$("#tSetKey"); if(sk) sk.addEventListener("click",function(e){ e.preventDefault(); renderKeyPrompt(); }); }
+  jpMsg("Google 地圖授權失敗，請檢查 API key 設定或重新輸入。");
+};
+
 function ensureMaps(cb){
   if(mapsReady){ cb(); return; }
   mapsCbs.push(cb);
@@ -42,12 +49,12 @@ function renderKeyPrompt(){
     '<div class="jp-keybox">'+
     '<p>公共交通路線規劃及實時路況由 Google Maps 提供。請貼上你的 <b>Google Maps API Key</b>（需啟用 <b>Maps JavaScript API</b> 及 <b>Directions API</b>）。Key 只會存在你部機，不會上傳。</p>'+
     '<input id="jpKeyInput" class="rin" placeholder="貼上 API key…" />'+
-    '<button class="addbtn" id="jpKeySave">儲存並啟用</button>'+
+    '<button class="addbtn" id="jpKeySave">儲存並重新載入</button>'+
     '<p class="jp-hint">建議在 Google Cloud Console 將 key 限制 HTTP referrer 為你的 GitHub Pages 網域，以免被什人盜用。</p>'+
     '</div>';
   openSheet("#jpResults");
   const sv=$("#jpKeySave");
-  if(sv) sv.addEventListener("click",function(){ const k=($("#jpKeyInput").value||"").trim(); if(!k) return; setGKey(k); closeSheet("#jpResults"); jpMsg("已儲存 API key。"); if(typeof initTraffic==="function"){ try{ initTraffic(true); }catch(e){} } });
+  if(sv) sv.addEventListener("click",function(){ const k=($("#jpKeyInput").value||"").trim(); if(!k) return; setGKey(k); jpMsg("已儲存 API key，重新載入中…"); setTimeout(function(){ location.reload(); }, 300); });
 }
 
 function renderSaved(){
