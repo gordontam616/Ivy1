@@ -4,7 +4,8 @@ let DRIVE_COND=null;
 let mapsLoading=false, mapsReady=false, acDone=false;
 let mapsCbs=[];
 
-function gKey(){ try{ return localStorage.getItem("gmapsKey")||""; }catch(e){ return ""; } }
+const DEFAULT_GKEY="AIzaSyDLnw40wEZ9si26wTbW6COfr7tDUXptdmM";
+function gKey(){ try{ return localStorage.getItem("gmapsKey")||DEFAULT_GKEY; }catch(e){ return DEFAULT_GKEY; } }
 function setGKey(k){ try{ localStorage.setItem("gmapsKey", k); }catch(e){} }
 function getSaved(){ try{ return JSON.parse(localStorage.getItem("savedPlaces")||"[]"); }catch(e){ return []; } }
 function setSaved(a){ try{ localStorage.setItem("savedPlaces", JSON.stringify(a)); }catch(e){} }
