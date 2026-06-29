@@ -143,8 +143,8 @@
   .tab.active{color:var(--accent);}
   #pageTraffic{padding:0; position:relative; overflow:hidden;}
   .map-wrap{position:absolute; inset:0;}
-  .map-wrap iframe{position:absolute; inset:0; width:100%; height:100%; border:0; display:block; background:var(--bg2);}
-  .tf-fallback{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:24px; color:var(--sub); font-size:13px; line-height:1.7;}
+  .map-wrap #gmap{position:absolute; inset:0; width:100%; height:100%; background:var(--bg2);}
+  .tf-fallback{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:24px; color:var(--sub); font-size:13px; line-height:1.7; z-index:2;}
   .tf-legend{position:absolute; left:12px; bottom:calc(94px + var(--safe-bot)); z-index:5; background:rgba(16,19,23,.82); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); border:1px solid var(--line); border-radius:12px; padding:9px 11px; display:flex; flex-direction:column; gap:6px;}
   .tf-legend .lg{display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--sub);}
   .tf-legend .sw{width:18px; height:5px; border-radius:3px;}
@@ -182,7 +182,6 @@
   .jp-sheet-h b{font-size:15px; font-weight:800;}
   .jp-sheet-h .jp-x{margin-left:auto; width:30px; height:30px; display:grid; place-items:center; border-radius:9px; background:var(--card2); border:1px solid var(--line); color:var(--sub); cursor:pointer;}
   .jp-back{font-size:13px; color:var(--accent); background:none; border:0; cursor:pointer; padding:0; font-family:inherit; font-weight:700;}
-  .jp-when-tag{font-size:12px; color:var(--sub); margin-bottom:8px;}
   .jp-cond{font-size:12.5px; font-weight:700; padding:8px 11px; border-radius:11px; margin-bottom:10px;}
   .jp-cond.g{background:rgba(52,199,89,.12); color:#34c759;}
   .jp-cond.a{background:rgba(255,176,32,.12); color:#ffb020;}
@@ -251,8 +250,8 @@
 
   <section id="pageTraffic" class="page hidden">
     <div class="map-wrap">
-      <div class="tf-fallback" id="tFallback">地圖載入中…<br>若長時間空白，<a class="link" id="tOpenExt" href="#" target="_blank" rel="noopener">按此用 Waze 開啟</a></div>
-      <iframe id="wazeFrame" allow="geolocation" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      <div class="tf-fallback" id="tFallback">地圖載入中…<br>若長時間空白，<a class="link" id="tOpenExt" href="#" target="_blank" rel="noopener">按此用 Google 地圖開啟</a></div>
+      <div id="gmap"></div>
     </div>
 
     <div class="jp">
@@ -353,7 +352,7 @@
   </nav>
 </div>
 
-<script src="app.js?v=2"></script>
-<script src="journey.js?v=2"></script>
+<script src="app.js?v=3"></script>
+<script src="journey.js?v=3"></script>
 </body>
 </html>
