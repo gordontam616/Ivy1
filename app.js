@@ -575,21 +575,18 @@ async function refreshWx(){
   setTimeout(()=>{ if(btn) btn.classList.remove("spin"); },500);
 }
 
-/* ===== 實時交通 (Waze) ===== */
+/* ===== 實時交通 (Google Maps) ===== */
 let trafficInited=false;
 let tZoom=14;
-function wazeSrc(lat,lon,zoom){ return `${_H}embed.waze.com/iframe?zoom=${zoom}&lat=${lat}&lon=${lon}&pin=1`; }
 async function initTraffic(force){
   if(trafficInited && !force) return;
   const loc=USER_LOC||await getLoc();
-  const fr=$("#wazeFrame");
-  fr.src=wazeSrc(loc.lat, loc.lon, tZoom);
-  $("#tOpenExt").href=`${_H}www.waze.com/live-map?latlng=${loc.lat}%2C${loc.lon}`;
-  $("#tUpd").textContent="更新於 "+nowStr()+" · "+(USER_LOC?"你的位置":"天水圍");
-  fr.addEventListener("load",()=>{ const f=$("#tFallback"); if(f) f.style.display="none"; }, {once:true});
-  trafficInited=true;
+  if(typeof initTrafficMap==="function") initTrafficMap(loc, tZoom, force);
+  const ext=$("#tOpenExt"); if(ext) ext.href=`${_H}www.google.com/maps/@${loc.lat},${loc.lon},15z/data=!5m1!1e1`;
+  const up=$("#tUpd"); if(up) up.textContent="更新於 "+nowStr()+" · "+(USER_LOC?"你的位置":"天水圍");
+  if(typeof gKey==="function" && gKey()) trafficInited=true;
 }
-function setZoom(z){ tZoom=Math.max(8,Math.min(17,z)); initTraffic(true); }
+function setZoom(z){ tZoom=Math.max(8,Math.min(20,z)); if(typeof trafficZoom==="function") trafficZoom(tZoom); }
 
 /* ===== 分頁切換 ===== */
 function showTab(name){
@@ -614,7 +611,7 @@ document.querySelectorAll("#modeSeg .seg-btn").forEach(b=> b.addEventListener("c
 /* ===== 按鈕 & 啟動 ===== */
 $("#busRefresh").addEventListener("click", refreshBus);
 $("#wxRefresh").addEventListener("click", refreshWx);
-$("#tRecenter").addEventListener("click",()=>{ USER_LOC=null; getLoc().then(()=>initTraffic(true)); });
+$("#tRecenter").addEventListener("click",()=>{ USER_LOC=null; getLoc().then(loc=>{ if(typeof trafficRecenter==="function") trafficRecenter(loc); initTraffic(true); }); });
 $("#tZin").addEventListener("click",()=> setZoom(tZoom+1));
 $("#tZout").addEventListener("click",()=> setZoom(tZoom-1));
 
