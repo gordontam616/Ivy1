@@ -371,6 +371,15 @@ function lrtMins(t){
   const m = t.match(/(\d+)/);
   return m? parseInt(m[1],10): null;
 }
+const LRT_HIDE = [
+  { route:"751", dest:"天逸" },
+  { route:"761P", dest:"天逸" },
+];
+function lrtHidden(routeNo, destCh){
+  const rn=String(routeNo||"").toUpperCase().trim();
+  const dc=String(destCh||"");
+  return LRT_HIDE.some(h=> h.route===rn && dc.includes(h.dest));
+}
 async function renderLRT(){
   const wrap=$("#lrtStops"); wrap.innerHTML=""; let cnt=0;
   for(const st of LRT_STATIONS){
@@ -387,6 +396,7 @@ async function renderLRT(){
     for(const p of data.platform_list){
       for(const r of (p.route_list||[])){
         if(!r.route_no) continue;
+        if(lrtHidden(r.route_no, r.dest_ch)) continue;
         const k=`${r.route_no}|${r.dest_ch}`;
         (groups[k]=groups[k]||[]).push({...r, plat:p.platform_id});
       }
